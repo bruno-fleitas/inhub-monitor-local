@@ -181,7 +181,7 @@ function vehicleShareTable(a){
 
 function huConfig(site){
   state.config.hu ??= {};
-  state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00'};
+  state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00',activeMinutes:10};
   return state.config.hu[site];
 }
 function huCptRows(site,t){
@@ -192,7 +192,7 @@ function huCptRows(site,t){
     if(!m.has(String(cpt)))m.set(String(cpt),{cpt,etiquetado:0,abierto:0,cerrado:0,pendiente:0,subcas:0,users:new Set()});
     const x=m.get(String(cpt));x.etiquetado+=g.etiquetado;x.abierto+=g.abierto;x.cerrado+=g.cerrado;x.pendiente+=g.pendiente;x.subcas++;
   }
-  for(const a of t.hu?.activeUsers||[]){
+  for(const a of huActiveUsers(site,t)){
     const cfg=mp.get(String(a.subca).toLowerCase()),cpt=cfg?.cpt??'SIN CONFIG';
     const x=m.get(String(cpt)); if(x)x.users.add(a.user);
   }
@@ -200,6 +200,7 @@ function huCptRows(site,t){
 }
 function huPct(x){return x.etiquetado?pct(x.abierto+x.cerrado,x.etiquetado):0}
 function huTone(v,obj){return v>=obj?'hu-good':v>=Math.max(0,obj-10)?'hu-warn':'hu-bad'}
+function huActiveUsers(site,t){const cfg=huConfig(site),mins=Math.max(1,Number(cfg.activeMinutes)||10),max=t.hu?.maxOutTs;if(max==null)return[];const src=t.hu?.userActivity||t.hu?.activeUsers||[];return src.filter(x=>max-x.last<mins*60000)}
 function hoursToTarget(lastTs,targetTime){
   if(!lastTs)return 0;
   const d=new Date(lastTs),[hh,mm]=String(targetTime||'05:00').split(':').map(Number);
@@ -226,18 +227,18 @@ function huProductivity(t){
 function huDashboard(site,t){
   const cfg=huConfig(site),tot=t.hu?.totals||{etiquetado:0,abierto:0,cerrado:0,pendiente:0};
   const avance=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
-  const rows=huCptRows(site,t),active=new Set((t.hu?.activeUsers||[]).map(x=>x.user)).size;
+  const rows=huCptRows(site,t),active=new Set(huActiveUsers(site,t).map(x=>x.user)).size;
   const hours=hoursToTarget(t.hu?.maxOutTs,cfg.targetTime),prod=Math.max(1,Number(cfg.prod)||190);
   const pph=hours>0?tot.pendiente/hours:0,need=hours>0?Math.ceil(pph/prod):0,realProd=active*prod,capacity=realProd*hours,gap=active-need;
   const bad=rows.filter(x=>huPct(x)<cfg.cptObjective);
   const update=t.hu?.maxOutTs?new Date(t.hu.maxOutTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-';
   return `<section class="hu-dashboard" data-hu-site="${site}">
     <div class="hu-head">
-      <div><span class="hu-brand">OCASA</span><h2>${names[site]} · Control HU</h2><small>Última actualización HU <b>${update}</b> · conectados = actividad dentro de los últimos 10 min</small></div>
+      <div><span class="hu-brand">OCASA</span><h2>${names[site]} · Control HU</h2><small>Última actualización HU <b>${update}</b> · conectados = actividad dentro de los últimos ${cfg.activeMinutes} min</small></div>
       <div class="hu-head-actions">
         <label>Hora objetivo<input type="time" data-hucfg="targetTime" data-site="${site}" value="${cfg.targetTime}"></label>
         <label>Prod. objetivo pza/h<input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></label>
-        <label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label>
+        <label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label><label>Ventana conectados (min)<input type="number" min="1" max="120" step="1" data-hucfg="activeMinutes" data-site="${site}" value="${cfg.activeMinutes}"></label>
       </div>
     </div>
     <div class="hu-status-strip">
@@ -297,7 +298,7 @@ function bindHuControls(){
 function huDetailRows(site,t){
   const mp=new Map(masters[site].map(x=>[String(x.subca).toLowerCase(),x]));
   const activeBySub=new Map();
-  for(const a of t.hu?.activeUsers||[]){
+  for(const a of huActiveUsers(site,t)){
     const k=String(a.subca||'SIN SUBCA');
     if(!activeBySub.has(k))activeBySub.set(k,new Map());
     const m=activeBySub.get(k),prev=m.get(a.user);if(!prev||a.last>prev.last)m.set(a.user,{user:a.user,last:a.last});
@@ -340,7 +341,7 @@ function bindHuUserClicks(){
     let list=[];try{list=JSON.parse(decodeURIComponent(btn.dataset.userList||''))}catch{}
     const rows=list.map(x=>`<tr><td>${esc(x.user)}</td><td>${x.last?new Date(x.last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-'}</td></tr>`).join('');
     const modal=document.createElement('div');modal.className='user-modal';
-    modal.innerHTML=`<div class="user-modal-card"><div class="user-modal-head"><div><h3>${esc(btn.dataset.userLabel||'Usuarios conectados')}</h3><small>${nf.format(list.length)} usuarios activos · ventana de 10 minutos</small></div><button type="button" class="user-close">×</button></div><div class="user-modal-body"><table class="hu-table compact"><tr><th>Usuario</th><th>Última actividad</th></tr>${rows||'<tr><td colspan="2">Sin usuarios activos.</td></tr>'}</table></div></div>`;
+    modal.innerHTML=`<div class="user-modal-card"><div class="user-modal-head"><div><h3>${esc(btn.dataset.userLabel||'Usuarios conectados')}</h3><small>${nf.format(list.length)} usuarios activos según la ventana configurada</small></div><button type="button" class="user-close">×</button></div><div class="user-modal-body"><table class="hu-table compact"><tr><th>Usuario</th><th>Última actividad</th></tr>${rows||'<tr><td colspan="2">Sin usuarios activos.</td></tr>'}</table></div></div>`;
     document.body.appendChild(modal);
     const close=()=>modal.remove();modal.querySelector('.user-close').onclick=close;modal.onclick=ev=>{if(ev.target===modal)close()};document.addEventListener('keydown',function escClose(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',escClose)}});
   });
