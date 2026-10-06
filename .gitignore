@@ -1,0 +1,17 @@
+# Archivos operativos / confidenciales
+*.csv
+*.xlsx
+*.xls
+*.xlsm
+*.zip
+
+# Datos locales y caches
+data/
+cache/
+tmp/
+
+# Entorno
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
