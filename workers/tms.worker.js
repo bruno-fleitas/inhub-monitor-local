@@ -33,8 +33,8 @@ async function process(file,labFile,cfg){
  function addSub(zone,cl){const k=zone||'SIN SUBCA';let g=sub.get(k);if(!g){g={subca:k,total:0,vol:0,big:0,sb:0};sub.set(k,g)}g.total++;if(cl!=='Paqueteria')g.vol++;if(cl==='Bigger')g.big++;if(cl==='SuperBigger')g.sb++}
  function addHu(zone,status,user,pout){
    const k=zone||'SIN SUBCA';let g=huSub.get(k);
-   if(!g){g={subca:k,etiquetado:0,abierto:0,cerrado:0};huSub.set(k,g)}
-   if(ETIQ.has(status)){g.etiquetado++;if(ABIERTO.has(status))g.abierto++;if(CERRADO.has(status))g.cerrado++}
+   if(!g){g={subca:k,etiquetado:0,abierto:0,cerrado:0,finalizado:0,enDespacho:0,despachado:0};huSub.set(k,g)}
+   if(ETIQ.has(status)){g.etiquetado++;if(ABIERTO.has(status))g.abierto++;if(CERRADO.has(status))g.cerrado++;if(status==='HU finalizado')g.finalizado++;if(status==='HU en despacho')g.enDespacho++;if(status==='HU despachado')g.despachado++}
    const ot=ts(pout);
    if(HU_VISIBLE.has(status)&&pout?.h!=null&&pout.h>=0&&pout.h<=23)huByHour[pout.h]++;
    if(user&&USERS.has(status)){
