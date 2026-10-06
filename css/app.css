@@ -37,3 +37,8 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 9px;b
 .mail-preview{background:#eef2f6;padding:18px;border-radius:12px;overflow:auto}.mail-sheet{max-width:900px;margin:auto;background:#fff;border:1px solid var(--line);padding:22px}.mail-sheet h2{background:#17365d;color:white;padding:8px 10px;font-size:18px}.mail-sheet h3{background:#dbeaf7;color:#17365d;border-left:4px solid #17365d;padding:6px 8px;font-size:14px}.mail-sheet th{position:static;background:#dbeaf7;color:#17365d;text-align:center}.mail-sheet td{text-align:center}.mail-sheet p{margin:4px 0;line-height:1.4}
 .master-actions{display:flex;gap:8px;margin-bottom:10px}.good{color:#137333}.warn{color:#b54708}
 @media(max-width:1100px){.cols,.rank-grid{grid-template-columns:1fr}}
+
+.subca-filters{display:grid;grid-template-columns:1.4fr repeat(4,minmax(120px,1fr)) auto;gap:10px;align-items:end;margin:14px 0;padding:12px;background:#f8fafc;border:1px solid var(--line);border-radius:12px}
+.filter-summary{font-size:12px;color:var(--muted);margin:6px 0 12px}
+.vehicle-share{margin:14px 0}.vehicle-share table{max-width:520px}
+@media(max-width:1200px){.subca-filters{grid-template-columns:repeat(2,1fr)}}
