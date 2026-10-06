@@ -110,3 +110,15 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 9px;b
   .site-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   .hu-status-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+
+.speed-panel{margin:14px 0 18px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.speed-head{display:flex;align-items:end;justify-content:space-between;gap:12px;padding:12px 14px;background:#f8fafc;border-bottom:1px solid var(--line)}
+.speed-head h3{margin:0;font-size:15px}.speed-head label{width:150px}
+.speed-table{width:100%;border-collapse:collapse}.speed-table td{padding:8px 12px;border-bottom:1px solid var(--line);font-size:12px}
+.speed-table td:first-child{color:var(--muted);text-align:left}.speed-table td:nth-child(2),.speed-table td:nth-child(3){text-align:right;font-variant-numeric:tabular-nums}
+.speed-table tr:last-child td{border-bottom:0}.speed-table b{font-size:15px}
+.speed-ok{color:#137333!important;font-weight:800}.speed-bad{color:#b42318!important;font-weight:800}
+.negnum{color:#b42318!important;font-weight:700}.posnum{color:#137333!important;font-weight:700}
+.speed-note{padding:8px 12px;background:#f8fafc;color:var(--muted);font-size:10px;border-top:1px solid var(--line)}
+@media(max-width:700px){.speed-head{align-items:stretch;flex-direction:column}.speed-head label{width:100%}}
