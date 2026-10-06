@@ -56,8 +56,8 @@ async function process(file,labFile,cfg){
  if(rest.trim()&&headers)row(line(rest.replace(/\r$/,''),d));
  const huSubca=[...huSub.values()].map(g=>({...g,pendiente:Math.max(0,g.etiquetado-g.abierto-g.cerrado)}));
  const huTotals=huSubca.reduce((a,g)=>({etiquetado:a.etiquetado+g.etiquetado,abierto:a.abierto+g.abierto,cerrado:a.cerrado+g.cerrado,pendiente:a.pendiente+g.pendiente}),{etiquetado:0,abierto:0,cerrado:0,pendiente:0});
- const active=maxOutTs==null?[]:[...userAct.values()].filter(x=>maxOutTs-x.last<600000);
+ const activity=[...userAct.values()];const active=maxOutTs==null?[]:activity.filter(x=>maxOutTs-x.last<600000);
  const stats=[...userStats.values()].sort((a,b)=>b.count-a.count);
- return{totalRows,total:totalConPost,totalConPost,totalSinPost,cptStart:cpt,vol,big,sb,by,subcaGroups:[...sub.values()],hu:{subca:huSubca,totals:huTotals,byHour:huByHour,activeUsers:active,userStats:stats,maxOutTs},maxInTs,meli:{arrivals:meliArrivals,processed:meliProcessed,subcas:zones,by:Object.fromEntries(by.map((x,h)=>[h,{arr:x.meliArr,proc:x.meliProc}]))},labelless:{supplied:labs.size,found:found.size,missing:Math.max(0,labs.size-found.size),arrived:arrived.size,processed:processed.size,by:Object.fromEntries(by.map((x,h)=>[h,{arr:x.labArr,proc:x.labProc}]))}}
+ return{totalRows,total:totalConPost,totalConPost,totalSinPost,cptStart:cpt,vol,big,sb,by,subcaGroups:[...sub.values()],hu:{subca:huSubca,totals:huTotals,byHour:huByHour,activeUsers:active,userActivity:activity,userStats:stats,maxOutTs},maxInTs,meli:{arrivals:meliArrivals,processed:meliProcessed,subcas:zones,by:Object.fromEntries(by.map((x,h)=>[h,{arr:x.meliArr,proc:x.meliProc}]))},labelless:{supplied:labs.size,found:found.size,missing:Math.max(0,labs.size-found.size),arrived:arrived.size,processed:processed.size,by:Object.fromEntries(by.map((x,h)=>[h,{arr:x.labArr,proc:x.labProc}]))}}
 }
 self.onmessage=async e=>{if(e.data?.type!=='PROCESS_TMS')return;try{self.postMessage({type:'PROGRESS',progress:1});self.postMessage({type:'RESULT',result:await process(e.data.file,e.data.labFile,e.data.config||{})})}catch(err){self.postMessage({type:'ERROR',message:err.message||String(err)})}};
