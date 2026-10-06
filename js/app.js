@@ -33,8 +33,33 @@ function arrTable(a,start){const u=universe(a,start);let cp=0,cv=0,r='';for(let 
 function bars(rows,key,start){const mx=Math.max(1,...rows.slice(start).map(x=>x[key]||0));return '<div class="chart">'+Array.from({length:24-start},(_,i)=>i+start).map(h=>`<div class="barrow"><span class="barlabel">${h}:00</span><div class="bartrack"><div class="barfill" style="width:${pct(rows[h][key]||0,mx)}%"></div></div><span class="barvalue">${nf.format(rows[h][key]||0)}</span></div>`).join('')+'</div>'}
 
 function renderAll(){summary();operation();huControl();curves();mix();subca();jornales();mail()}
-function summary(){let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site],t=d.tms;if(!t&&!d.arrivals&&!d.jornalesResult)continue;const fc=Number($(site==='soldati'?'fcS':'fcE').value)||0,pure=t?Math.max(0,t.vol-t.big-t.sb):0,base=t?Math.max(0,t.totalConPost-t.big-t.sb):0;h+=`<div class="site-summary"><h2>${names[site]}</h2><div class="kpi-grid">${t?`<div class="kpi"><span>Proyectado 09:00</span><b>${fc?nf.format(fc):'-'}</b></div><div class="kpi"><span>Inhub c/Post</span><b>${nf.format(t.totalConPost)}</b></div><div class="kpi"><span>Inhub s/Post</span><b>${nf.format(t.totalSinPost)}</b></div><div class="kpi"><span>Voluminoso</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Vol. s/B/SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div><div class="kpi"><span>MELI Air</span><b>${nf.format(t.meli.arrivals)}</b><small>HU ${nf.format(t.meli.processed)}</small></div><div class="kpi"><span>Labelless</span><b>${nf.format(t.labelless.arrived)}</b><small>HU ${nf.format(t.labelless.processed)}</small></div>`:''}${d.arrivals?`<div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b><small>${nf.format(d.arrivals.totalShip)} paquetes</small></div>`:''}${d.jornalesResult?`<div class="kpi"><span>Jornales</span><b>${nf.format(d.jornalesResult.total)}</b></div>`:''}</div></div>`} $('summaryCards').innerHTML=h||'<div class="empty">Procesá archivos.</div>'}
-function operation(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals)continue;h+=`<article class="card"><h2>${names[site]}</h2>`;if(d.tms)h+=`<div class="kpi-grid"><div class="kpi"><span>Inhub</span><b>${nf.format(d.tms.totalConPost)}</b></div><div class="kpi"><span>MELI Air procesado</span><b>${pf.format(pct(d.tms.meli.processed,d.tms.meli.arrivals))}%</b></div><div class="kpi"><span>Labelless no encontrados</span><b>${nf.format(d.tms.labelless.missing)}</b></div></div>`;if(d.arrivals)h+=`<h3>Arribos</h3><div class="kpi-grid"><div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b></div><div class="kpi"><span>Paquetes</span><b>${nf.format(d.arrivals.totalShip)}</b></div><div class="kpi"><span>% Semi</span><b>${pf.format(pct(d.arrivals.semi,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Chasis</span><b>${pf.format(pct(d.arrivals.chasis,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta</span><b>${pf.format(pct(d.arrivals.camionetaOther??d.arrivals.camioneta,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta MELI</span><b>${pf.format(pct(d.arrivals.camionetaMeli||0,d.arrivals.veh))}%</b></div></div><div class="cols"><div><h4>Cortes paquetes</h4>${cuts(d.arrivals,start,'packages')}</div><div><h4>Cortes vehículos</h4>${cuts(d.arrivals,start,'vehicles')}</div></div>`;h+='</article>'}$('operationView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
+function summary(){
+  let h='<div class="summary-sites">';
+  let any=false;
+  for(const site of ['soldati','echeverria']){
+    const d=state.sites[site],t=d.tms;
+    if(!t&&!d.arrivals&&!d.jornalesResult)continue;
+    any=true;
+    const fc=Number($(site==='soldati'?'fcS':'fcE').value)||0;
+    const pure=t?Math.max(0,t.vol-t.big-t.sb):0,base=t?Math.max(0,t.totalConPost-t.big-t.sb):0;
+    h+=`<section class="site-summary"><h2>${names[site]}</h2><div class="site-kpis">
+      ${t?`
+      <div class="kpi"><span>Proyectado 09:00</span><b>${fc?nf.format(fc):'-'}</b></div>
+      <div class="kpi"><span>Inhub c/Post</span><b>${nf.format(t.totalConPost)}</b></div>
+      <div class="kpi"><span>Inhub s/Post</span><b>${nf.format(t.totalSinPost)}</b></div>
+      <div class="kpi"><span>Voluminoso</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div>
+      <div class="kpi"><span>Vol. s/B/SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div>
+      <div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div>
+      <div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div>
+      <div class="kpi"><span>MELI Air</span><b>${nf.format(t.meli.arrivals)}</b><small>HU ${nf.format(t.meli.processed)}</small></div>
+      <div class="kpi"><span>Labelless</span><b>${nf.format(t.labelless.arrived)}</b><small>HU ${nf.format(t.labelless.processed)}</small></div>`:''}
+      ${d.arrivals?`<div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b><small>${nf.format(d.arrivals.totalShip)} paquetes</small></div>`:''}
+      ${d.jornalesResult?`<div class="kpi"><span>Jornales</span><b>${nf.format(d.jornalesResult.total)}</b></div>`:''}
+    </div></section>`;
+  }
+  h+='</div>';
+  $('summaryCards').innerHTML=any?h:'<div class="empty">Procesá archivos.</div>';
+}function operation(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals)continue;h+=`<article class="card"><h2>${names[site]}</h2>`;if(d.tms)h+=`<div class="kpi-grid"><div class="kpi"><span>Inhub</span><b>${nf.format(d.tms.totalConPost)}</b></div><div class="kpi"><span>MELI Air procesado</span><b>${pf.format(pct(d.tms.meli.processed,d.tms.meli.arrivals))}%</b></div><div class="kpi"><span>Labelless no encontrados</span><b>${nf.format(d.tms.labelless.missing)}</b></div></div>`;if(d.arrivals)h+=`<h3>Arribos</h3><div class="kpi-grid"><div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b></div><div class="kpi"><span>Paquetes</span><b>${nf.format(d.arrivals.totalShip)}</b></div><div class="kpi"><span>% Semi</span><b>${pf.format(pct(d.arrivals.semi,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Chasis</span><b>${pf.format(pct(d.arrivals.chasis,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta</span><b>${pf.format(pct(d.arrivals.camionetaOther??d.arrivals.camioneta,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta MELI</span><b>${pf.format(pct(d.arrivals.camionetaMeli||0,d.arrivals.veh))}%</b></div></div><div class="cols"><div><h4>Cortes paquetes</h4>${cuts(d.arrivals,start,'packages')}</div><div><h4>Cortes vehículos</h4>${cuts(d.arrivals,start,'vehicles')}</div></div>`;h+='</article>'}$('operationView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
 function cuts(a,start,type){return '<table><tr><th>Corte</th><th>%</th></tr>'+[16,18,20].map(c=>`<tr><td>Pre ${c}</td><td>${pf.format(cut(a,start,c,type))}%</td></tr>`).join('')+`<tr><td>Post 20</td><td>${pf.format(100-cut(a,start,20,type))}%</td></tr></table>`}
 function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals)continue;h+=`<article class="card"><h2>${names[site]}</h2><div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3>${tmsTable(d.tms,start)}<h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
 function mix(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(!t)continue;const pure=Math.max(0,t.vol-t.big-t.sb),base=Math.max(0,t.totalConPost-t.big-t.sb);h+=`<article class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div></div>${tmsTable(t,start)}</article>`} $('mixView').innerHTML=h||'<article class="card empty">Sin TMS.</article>'}
@@ -104,7 +129,7 @@ function vehicleShareTable(a){
 
 function huConfig(site){
   state.config.hu ??= {};
-  state.config.hu[site] ??= {hours:5,prod:190,objective:65,cptObjective:99.5};
+  state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00'};
   return state.config.hu[site];
 }
 function huCptRows(site,t){
@@ -123,6 +148,18 @@ function huCptRows(site,t){
 }
 function huPct(x){return x.etiquetado?pct(x.abierto+x.cerrado,x.etiquetado):0}
 function huTone(v,obj){return v>=obj?'hu-good':v>=Math.max(0,obj-10)?'hu-warn':'hu-bad'}
+function hoursToTarget(lastTs,targetTime){
+  if(!lastTs)return 0;
+  const d=new Date(lastTs),[hh,mm]=String(targetTime||'05:00').split(':').map(Number);
+  const target=new Date(d);target.setHours(hh||0,mm||0,0,0);
+  if(target<=d)target.setDate(target.getDate()+1);
+  return Math.max(0,(target-d)/3600000);
+}
+function fmtDuration(hours){
+  if(!isFinite(hours)||hours<0)return '-';
+  const total=Math.round(hours*60),h=Math.floor(total/60),m=total%60;
+  return m?`${h} h ${String(m).padStart(2,'0')} min`:`${h} h`;
+}
 function huHourlyTable(t){
   const vals=(t.hu?.byHour||[]).map((v,h)=>({h,v})).filter(x=>x.v>0);
   if(!vals.length)return '<div class="hu-empty">Sin bipeos HU por hora para la fecha seleccionada.</div>';
@@ -138,12 +175,27 @@ function huDashboard(site,t){
   const cfg=huConfig(site),tot=t.hu?.totals||{etiquetado:0,abierto:0,cerrado:0,pendiente:0};
   const avance=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
   const rows=huCptRows(site,t),active=new Set((t.hu?.activeUsers||[]).map(x=>x.user)).size;
-  const hours=Math.max(.25,Number(cfg.hours)||5),prod=Math.max(1,Number(cfg.prod)||190);
-  const pph=tot.pendiente/hours,need=Math.round(pph/prod),realProd=active*prod,capacity=realProd*hours;
+  const hours=hoursToTarget(t.hu?.maxOutTs,cfg.targetTime),prod=Math.max(1,Number(cfg.prod)||190);
+  const pph=hours>0?tot.pendiente/hours:0,need=hours>0?Math.ceil(pph/prod):0,realProd=active*prod,capacity=realProd*hours,gap=active-need;
   const bad=rows.filter(x=>huPct(x)<cfg.cptObjective);
-  const update=t.hu?.maxOutTs?new Date(t.hu.maxOutTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'-';
+  const update=t.hu?.maxOutTs?new Date(t.hu.maxOutTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-';
   return `<section class="hu-dashboard" data-hu-site="${site}">
-    <div class="hu-head"><div><span class="hu-brand">OCASA</span><h2>${names[site]} · Control HU</h2><small>Última actividad HU ${update}</small></div><div class="hu-head-actions"><label>Objetivo avance %<input type="number" step="0.1" data-hucfg="objective" data-site="${site}" value="${cfg.objective}"></label><label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label></div></div>
+    <div class="hu-head">
+      <div><span class="hu-brand">OCASA</span><h2>${names[site]} · Control HU</h2><small>Última actualización HU <b>${update}</b> · conectados = actividad dentro de los últimos 10 min</small></div>
+      <div class="hu-head-actions">
+        <label>Hora objetivo<input type="time" data-hucfg="targetTime" data-site="${site}" value="${cfg.targetTime}"></label>
+        <label>Prod. objetivo pza/h<input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></label>
+        <label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label>
+      </div>
+    </div>
+    <div class="hu-status-strip">
+      <div><span>Última actualización</span><b>${update}</b></div>
+      <div><span>Hora objetivo</span><b>${cfg.targetTime}</b></div>
+      <div><span>Tiempo restante</span><b>${fmtDuration(hours)}</b></div>
+      <div><span>Conectados reales</span><b>${nf.format(active)}</b></div>
+      <div><span>Necesarios</span><b>${nf.format(need)}</b></div>
+      <div class="${gap>=0?'gap-good':'gap-bad'}"><span>Brecha</span><b>${gap>0?'+':''}${nf.format(gap)}</b></div>
+    </div>
     <div class="hu-layout">
       <div class="hu-left">
         <div class="hu-kpi-panel">
@@ -152,15 +204,26 @@ function huDashboard(site,t){
         </div>
         <div class="hu-titlebar">CONTROL - CPT / XD</div>
         <h3>Armado de HU</h3>
-        <div class="hu-scroll"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>Piezas HU-Abierto</th><th>Piezas HU-Cerrado</th><th>Piezas Pend. HU</th><th>% Avance</th><th>Users HU Activos</th></tr>
+        <div class="hu-scroll"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr>
         ${rows.map(x=>{const a=huPct(x);return `<tr><td>${x.cpt}</td><td>${nf.format(x.etiquetado)}</td><td>${nf.format(x.abierto)}</td><td>${nf.format(x.cerrado)}</td><td class="hu-pend">${nf.format(x.pendiente)}</td><td><span class="hu-pill ${huTone(a,cfg.objective)}">${pf.format(a)}%</span></td><td>${x.users.size||'-'}</td></tr>`}).join('')}
         <tr class="total"><td>Total</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td>${pf.format(avance)}%</td><td>${active}</td></tr></table></div>
       </div>
       <div class="hu-right">
         <h3>Datos operativos</h3>
-        <div class="hu-ops">
-          <table class="hu-table op"><tr><td>total</td><td>${nf.format(tot.etiquetado)}</td></tr><tr><td>objetivo</td><td>${nf.format(Math.round(tot.etiquetado*cfg.objective/100))}</td></tr><tr><td>piezas procesadas</td><td>${nf.format(tot.abierto+tot.cerrado)}</td></tr><tr><td>HU cerrado</td><td>${nf.format(tot.cerrado)}</td></tr><tr><td>pendiente</td><td>${nf.format(tot.pendiente)}</td></tr><tr><td>hs restantes</td><td><input type="number" step=".25" data-hucfg="hours" data-site="${site}" value="${cfg.hours}"></td></tr><tr><td>pza x hs neces</td><td>${nf.format(Math.round(pph))}</td></tr><tr><td>usar HU neces</td><td class="hu-need">${nf.format(need)}</td></tr><tr><td>cant. Real</td><td>${nf.format(active)}</td></tr><tr><td>prod x hs</td><td><input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></td></tr><tr><td>producción real/h</td><td>${nf.format(realProd)}</td></tr><tr><td>capacidad restante</td><td>${nf.format(Math.round(capacity))}</td></tr></table>
-        </div>
+        <div class="hu-ops"><table class="hu-table op">
+          <tr><td>total</td><td>${nf.format(tot.etiquetado)}</td></tr>
+          <tr><td>objetivo avance</td><td>${nf.format(Math.round(tot.etiquetado*cfg.objective/100))}</td></tr>
+          <tr><td>piezas procesadas</td><td>${nf.format(tot.abierto+tot.cerrado)}</td></tr>
+          <tr><td>HU cerrado</td><td>${nf.format(tot.cerrado)}</td></tr>
+          <tr><td>pendiente</td><td>${nf.format(tot.pendiente)}</td></tr>
+          <tr><td>hs restantes</td><td>${fmtDuration(hours)}</td></tr>
+          <tr><td>pza x hs neces</td><td>${nf.format(Math.ceil(pph))}</td></tr>
+          <tr><td>usuarios HU necesarios</td><td class="hu-need">${nf.format(need)}</td></tr>
+          <tr><td>conectados reales</td><td>${nf.format(active)}</td></tr>
+          <tr><td>brecha</td><td class="${gap>=0?'gap-good-cell':'gap-bad-cell'}">${gap>0?'+':''}${nf.format(gap)}</td></tr>
+          <tr><td>producción real/h</td><td>${nf.format(realProd)}</td></tr>
+          <tr><td>capacidad hasta ${cfg.targetTime}</td><td>${nf.format(Math.round(capacity))}</td></tr>
+        </table></div>
         <h3>Bipeo HU por hora</h3>${huHourlyTable(t)}
       </div>
     </div>
@@ -171,7 +234,11 @@ function huDashboard(site,t){
   </section>`;
 }
 function bindHuControls(){
-  document.querySelectorAll('[data-hucfg]').forEach(el=>el.onchange=()=>{const site=el.dataset.site,k=el.dataset.hucfg;huConfig(site)[k]=Number(el.value);huControl()});
+  document.querySelectorAll('[data-hucfg]').forEach(el=>el.onchange=()=>{
+    const site=el.dataset.site,k=el.dataset.hucfg;
+    huConfig(site)[k]=k==='targetTime'?el.value:Number(el.value);
+    huControl();
+  });
 }
 function huControl(){
   let h='';
