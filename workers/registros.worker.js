@@ -16,7 +16,7 @@ function parts(v){
   if(m)return{y:+m[1],m:+m[2],d:+m[3],h:+(m[4]||0),min:+(m[5]||0),sec:+(m[6]||0)};
   return null;
 }
-const stamp=p=>p?Date.UTC(p.y,p.m-1,p.d,p.h||0,p.min||0,p.sec||0):null;
+const stamp=p=>p?new Date(p.y,p.m-1,p.d,p.h||0,p.min||0,p.sec||0,0).getTime():null;
 function sameDay(p,day){if(!day)return true;if(!p)return false;const[y,m,d]=day.split('-').map(Number);return p.y===y&&p.m===m&&p.d===d}
 function key(row,names){
   const ks=Object.keys(row||{});
@@ -61,7 +61,7 @@ async function analyze(file,day){
   }
   let currentSpeed=0,currentHour=null,elapsedMinutes=0;
   if(lastTs!=null){
-    const d=new Date(lastTs);currentHour=d.getUTCHours();elapsedMinutes=d.getUTCMinutes()+d.getUTCSeconds()/60;
+    const d=new Date(lastTs);currentHour=d.getHours();elapsedMinutes=d.getMinutes()+d.getSeconds()/60;
     currentHourPackages=byHour[currentHour]||0;
     currentSpeed=elapsedMinutes>0?currentHourPackages/(elapsedMinutes/60):currentHourPackages;
   }
