@@ -26,7 +26,7 @@ async function labIds(file){if(!file)return new Set();const text=await file.text
 async function process(file,labFile,cfg){
  const labs=await labIds(labFile),found=new Set(),arrived=new Set(),processed=new Set(),by=Array.from({length:24},()=>({tot:0,vol:0,big:0,sb:0,meliArr:0,meliProc:0,labArr:0,labProc:0}));
  const sub=new Map(),huSub=new Map(),userAct=new Map(),userStats=new Map(),zones={},cpt=Number(cfg.cptStart||10);
- let totalRows=0,totalConPost=0,totalSinPost=0,vol=0,big=0,sb=0,meliArrivals=0,meliProcessed=0,maxOutTs=null;
+ let totalRows=0,totalConPost=0,totalSinPost=0,vol=0,big=0,sb=0,meliArrivals=0,meliProcessed=0,maxOutTs=null,maxInTs=null;
  const huByHour=Array.from({length:24},()=>0);
  let headers=null,indexes=null,d=',',offset=0,rest='';const size=file.size,chunk=4*1024*1024;
  function setup(h){indexes={inDate:idx(h,['Inbound Date Included']),outDate:idx(h,['Outbound Included Date']),outId:idx(h,['Outbound ID']),weight:idx(h,['Weight']),height:idx(h,['Height']),length:idx(h,['Length']),width:idx(h,['Width']),zone:idx(h,['Labeling Zone','SubCA']),ship:idx(h,['Shipment ID','SHIPMENT_ID','SHIPMENT ID','SHIPMENT']),status:idx(h,['Hub Status']),outUser:idx(h,['Outbound User IDs','Outbound User ID'])};if(indexes.inDate<0)throw new Error('No se encontró Inbound Date Included en el TMS.')}
@@ -46,7 +46,7 @@ async function process(file,labFile,cfg){
  }
  function row(r){
   totalRows++;const pin=parts(val(r,indexes.inDate)),pout=parts(val(r,indexes.outDate)),cl=classify(val(r,indexes.weight),val(r,indexes.height),val(r,indexes.length),val(r,indexes.width)),zone=String(val(r,indexes.zone)).trim(),sid=String(val(r,indexes.ship)).trim(),hasHU=String(val(r,indexes.outId)).trim()&&String(val(r,indexes.outDate)).trim()&&pout;
-  if(sameDay(pin,cfg.selectedDate)){totalConPost++;if(pin.h!=null&&pin.h>=cpt)totalSinPost++;if(cl!=='Paqueteria')vol++;if(cl==='Bigger')big++;if(cl==='SuperBigger')sb++;addSub(zone,cl);if(pin.h!=null&&pin.h>=0&&pin.h<=23){const b=by[pin.h];b.tot++;if(cl!=='Paqueteria')b.vol++;if(cl==='Bigger')b.big++;if(cl==='SuperBigger')b.sb++}}
+  if(sameDay(pin,cfg.selectedDate)){const it=ts(pin);if(it!=null&&(maxInTs==null||it>maxInTs))maxInTs=it;totalConPost++;if(pin.h!=null&&pin.h>=cpt)totalSinPost++;if(cl!=='Paqueteria')vol++;if(cl==='Bigger')big++;if(cl==='SuperBigger')sb++;addSub(zone,cl);if(pin.h!=null&&pin.h>=0&&pin.h<=23){const b=by[pin.h];b.tot++;if(cl!=='Paqueteria')b.vol++;if(cl==='Bigger')b.big++;if(cl==='SuperBigger')b.sb++}}
   if(/_a$/i.test(zone)){if(zone)zones[zone]=(zones[zone]||0)+1;if(sameDay(pin,cfg.selectedDate)){meliArrivals++;if(pin.h!=null&&pin.h>=0&&pin.h<=23)by[pin.h].meliArr++}if(hasHU&&sameDay(pout,cfg.selectedDate)){meliProcessed++;if(pout.h!=null&&pout.h>=0&&pout.h<=23)by[pout.h].meliProc++}}
   const status=statusOf(val(r,indexes.status)),outUser=String(val(r,indexes.outUser)).trim();
   if(sameDay(pin,cfg.selectedDate)&&pin.h!=null&&pin.h>=7)addHu(zone,status,outUser,pout);
@@ -58,6 +58,6 @@ async function process(file,labFile,cfg){
  const huTotals=huSubca.reduce((a,g)=>({etiquetado:a.etiquetado+g.etiquetado,abierto:a.abierto+g.abierto,cerrado:a.cerrado+g.cerrado,pendiente:a.pendiente+g.pendiente}),{etiquetado:0,abierto:0,cerrado:0,pendiente:0});
  const active=maxOutTs==null?[]:[...userAct.values()].filter(x=>maxOutTs-x.last<600000);
  const stats=[...userStats.values()].sort((a,b)=>b.count-a.count);
- return{totalRows,total:totalConPost,totalConPost,totalSinPost,cptStart:cpt,vol,big,sb,by,subcaGroups:[...sub.values()],hu:{subca:huSubca,totals:huTotals,byHour:huByHour,activeUsers:active,userStats:stats,maxOutTs},meli:{arrivals:meliArrivals,processed:meliProcessed,subcas:zones,by:Object.fromEntries(by.map((x,h)=>[h,{arr:x.meliArr,proc:x.meliProc}]))},labelless:{supplied:labs.size,found:found.size,missing:Math.max(0,labs.size-found.size),arrived:arrived.size,processed:processed.size,by:Object.fromEntries(by.map((x,h)=>[h,{arr:x.labArr,proc:x.labProc}]))}}
+ return{totalRows,total:totalConPost,totalConPost,totalSinPost,cptStart:cpt,vol,big,sb,by,subcaGroups:[...sub.values()],hu:{subca:huSubca,totals:huTotals,byHour:huByHour,activeUsers:active,userStats:stats,maxOutTs},maxInTs,meli:{arrivals:meliArrivals,processed:meliProcessed,subcas:zones,by:Object.fromEntries(by.map((x,h)=>[h,{arr:x.meliArr,proc:x.meliProc}]))},labelless:{supplied:labs.size,found:found.size,missing:Math.max(0,labs.size-found.size),arrived:arrived.size,processed:processed.size,by:Object.fromEntries(by.map((x,h)=>[h,{arr:x.labArr,proc:x.labProc}]))}}
 }
 self.onmessage=async e=>{if(e.data?.type!=='PROCESS_TMS')return;try{self.postMessage({type:'PROGRESS',progress:1});self.postMessage({type:'RESULT',result:await process(e.data.file,e.data.labFile,e.data.config||{})})}catch(err){self.postMessage({type:'ERROR',message:err.message||String(err)})}};
