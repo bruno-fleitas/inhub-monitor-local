@@ -162,3 +162,17 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 9px;b
 .report-alerts p{margin:4px 0;font-size:11px}
 @media(max-width:1050px){.report-sites{grid-template-columns:1fr}}
 @media(max-width:650px){.report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.report-head{align-items:stretch;flex-direction:column}}
+
+
+/* DOT monitor */
+.dot-panel{margin-top:16px;padding:13px;border:1px solid #2f4466;border-radius:12px;background:#0f1928}
+.dot-panel .hu-section-title{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:10px}
+.dot-panel .hu-section-title h3{margin:0 0 3px;color:#fff}
+.dot-panel .hu-section-title label{width:145px;color:#b9c6d8;font-size:10px}
+.dot-panel .hu-section-title input{width:100%}
+.dot-panel .cpt-group summary{grid-template-columns:95px 100px 110px 90px 90px 90px minmax(90px,1fr)}
+.dot-panel .hu-good{color:#35c98b!important;font-weight:900}
+.dot-panel .hu-bad{color:#ff6868!important;font-weight:900}
+.hu-pill.hu-good{background:#daf5e8;color:#137333;border-color:#9bd9bb}
+.hu-pill.hu-bad{background:#fde7e7;color:#b42318;border-color:#f2b6b6}
+@media(max-width:900px){.dot-panel .hu-section-title{align-items:stretch;flex-direction:column}.dot-panel .hu-section-title label{width:100%}}
