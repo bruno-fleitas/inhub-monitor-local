@@ -200,7 +200,7 @@ function huCptRows(site,t){
   return [...m.values()].sort((a,b)=>String(a.cpt).localeCompare(String(b.cpt),'es',{numeric:true}));
 }
 function huPct(x){return x.etiquetado?pct(x.abierto+x.cerrado,x.etiquetado):0}
-function huTone(v,obj){return v>=obj?'hu-good':v>=Math.max(0,obj-10)?'hu-warn':'hu-bad'}
+function huTone(v,obj){return v>=obj?'hu-good':'hu-bad'}
 function huActiveUsers(site,t){const cfg=huConfig(site),mins=Math.max(1,Number(cfg.activeMinutes)||10),max=t.hu?.maxOutTs;if(max==null)return[];const src=t.hu?.userActivity||t.hu?.activeUsers||[];return src.filter(x=>max-x.last<mins*60000)}
 function hoursToTarget(lastTs,targetTime){
   if(!lastTs)return 0;
@@ -282,6 +282,7 @@ function huDashboard(site,t){
       </div>
     </div>
     <div class="hu-tracking-block"><h3>Seguimiento por CPT y SubCA</h3><div class="hu-note">Avance, pendientes y conectados activos por cada SubCA dentro de su CPT.</div>${huTrackingTable(site,t)}</div>
+    ${dotMonitor(site,t)}
     <div class="hu-bottom-grid">
       <div><h3>Auditoría CPT · objetivo ${pf.format(cfg.cptObjective)}%</h3><div class="hu-scroll"><table class="hu-table compact"><tr><th>CPT</th><th>Avance</th><th>Pendiente</th><th>Estado</th></tr>${rows.map(x=>{const a=huPct(x),ok=a>=cfg.cptObjective;return `<tr><td>${x.cpt}</td><td>${pf.format(a)}%</td><td>${nf.format(x.pendiente)}</td><td><span class="hu-pill ${ok?'hu-good':a>=95?'hu-warn':'hu-bad'}">${ok?'CUMPLE':'PENDIENTE'}</span></td></tr>`}).join('')}</table></div><div class="hu-note">${bad.length?bad.length+' CPT debajo del objetivo final':'Todos los CPT cumplen el objetivo final'}.</div></div>
       <div><h3>Productividad HU · Top usuarios</h3><div class="hu-scroll">${huProductivity(t)}</div></div>
@@ -373,12 +374,41 @@ function huTrackingTable(site,t){
       </table></div>
     </details>`).join('')}</div>`;
 }
+function dotTarget(site){state.config.dot??={};state.config.dot[site]??={objective:99.55};return state.config.dot[site]}
+function cptDeadline(day,cpt){
+ if(!day||cpt==null||cpt==='SIN CONFIG')return null;
+ const [y,m,d]=day.split('-').map(Number),h=Number(cpt);if(!Number.isFinite(h))return null;
+ const x=new Date(y,m-1,d,h,0,0,0);if(h<12)x.setDate(x.getDate()+1);return x.getTime();
+}
+function dotData(site,t){
+ const master=new Map(masters[site].map(x=>[String(x.subca).toLowerCase(),x])),now=t.hu?.maxOutTs||t.maxInTs||Date.now(),obj=dotTarget(site).objective,groups=new Map();
+ for(const r of t.dotRows||[]){
+  const cfg=master.get(String(r.subca).toLowerCase());if(!cfg)continue;
+  const deadline=cptDeadline(state.config.analysisDate,cfg.cpt);if(deadline==null)continue;
+  const k=String(cfg.cpt)+'|'+r.subca;if(!groups.has(k))groups.set(k,{cpt:cfg.cpt,subca:r.subca,total:0,onTime:0,delay:0,deviation:0,pending:0,deadline});
+  const g=groups.get(k);g.total++;
+  if(r.outTs!=null){if(r.outTs<=deadline)g.onTime++;else g.delay++}
+  else if(now>deadline)g.deviation++;else g.pending++;
+ }
+ const rows=[...groups.values()].map(g=>({...g,dot:g.total?pct(g.onTime,g.total):0,margin:g.total?pct(g.onTime,g.total)-obj:0}));
+ const cpts=new Map();for(const r of rows){const k=String(r.cpt);if(!cpts.has(k))cpts.set(k,{cpt:r.cpt,total:0,onTime:0,delay:0,deviation:0,pending:0,subcas:[]});const g=cpts.get(k);for(const z of ['total','onTime','delay','deviation','pending'])g[z]+=r[z];g.subcas.push(r)}
+ return{objective:obj,rows,cpts:[...cpts.values()].map(g=>({...g,dot:g.total?pct(g.onTime,g.total):0,margin:g.total?pct(g.onTime,g.total)-obj:0})).sort((a,b)=>Number(a.cpt)-Number(b.cpt))};
+}
+function dotMonitor(site,t){
+ const d=dotData(site,t),tot=d.cpts.reduce((a,g)=>{for(const k of ['total','onTime','delay','deviation','pending'])a[k]+=g[k];return a},{total:0,onTime:0,delay:0,deviation:0,pending:0}),dp=tot.total?pct(tot.onTime,tot.total):0;
+ return `<section class="dot-panel"><div class="hu-section-title"><div><h3>Dispatch On Time · DOT</h3><div class="hu-note">ON TIME = Outbound Included dentro del CPT · Delay = despachado después · Desvío = CPT vencido sin despacho.</div></div><label>Objetivo DOT %<input type="number" min="0" max="100" step="0.01" data-dot-objective="${site}" value="${d.objective}"></label></div>
+ <div class="hu-status-strip"><div><span>DOT</span><b class="${dp>=d.objective?'hu-good':'hu-bad'}">${pf.format(dp)}%</b></div><div><span>Objetivo</span><b>${pf.format(d.objective)}%</b></div><div><span>Margen</span><b class="${dp-d.objective>=0?'hu-good':'hu-bad'}">${dp-d.objective>=0?'+':''}${pf.format(dp-d.objective)} pp</b></div><div><span>On Time</span><b>${nf.format(tot.onTime)}</b></div><div><span>Delay</span><b>${nf.format(tot.delay)}</b></div><div><span>Desvío</span><b>${nf.format(tot.deviation)}</b></div></div>
+ <div class="cpt-track">${d.cpts.map(g=>`<details class="cpt-group"><summary><span class="cpt-name">CPT ${esc(g.cpt)}</span><span>${nf.format(g.total)} pzas</span><span class="${g.dot>=d.objective?'hu-good':'hu-bad'}">${pf.format(g.dot)}% DOT</span><span>${nf.format(g.onTime)} OT</span><span>${nf.format(g.delay)} delay</span><span>${nf.format(g.deviation)} desvío</span><span>${g.margin>=0?'+':''}${pf.format(g.margin)} pp</span></summary>
+ <div class="hu-scroll"><table class="hu-table compact"><tr><th>SubCA</th><th>CPT</th><th>Total</th><th>On Time</th><th>Delay</th><th>Desvío</th><th>Pendiente</th><th>DOT</th><th>Margen</th></tr>${g.subcas.sort((a,b)=>a.dot-b.dot).map(r=>`<tr><td>${esc(r.subca)}</td><td>${esc(r.cpt)}</td><td>${nf.format(r.total)}</td><td>${nf.format(r.onTime)}</td><td>${nf.format(r.delay)}</td><td>${nf.format(r.deviation)}</td><td>${nf.format(r.pending)}</td><td><span class="hu-pill ${r.dot>=d.objective?'hu-good':'hu-bad'}">${pf.format(r.dot)}%</span></td><td class="${r.margin>=0?'hu-good':'hu-bad'}">${r.margin>=0?'+':''}${pf.format(r.margin)} pp</td></tr>`).join('')}</table></div></details>`).join('')}</div></section>`;
+}
+function bindDotControls(){document.querySelectorAll('[data-dot-objective]').forEach(el=>el.onchange=()=>{dotTarget(el.dataset.dotObjective).objective=Math.max(0,Math.min(100,Number(el.value)||99.55));huControl();reportPreview()})}
 function huControl(){
   let h='';
   for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(t?.hu)h+=huDashboard(site,t)}
   $('huView').innerHTML=h||'<div class="card empty">Procesá un TMS para ver el Control HU.</div>';
   bindHuControls();
   bindHuUserClicks();
+  bindDotControls();
 }
 
 async function initMasters(){const[s,e]=await Promise.all([fetch('./js/config/masterS.json').then(r=>r.json()),fetch('./js/config/masterE.json').then(r=>r.json())]);state.defaults={masterS:s,masterE:e};masters.soldati=JSON.parse(localStorage.getItem('inhubMasterS')||'null')||s;masters.echeverria=JSON.parse(localStorage.getItem('inhubMasterE')||'null')||e;masterUI()}
@@ -427,6 +457,7 @@ function reportAlerts(x){
  const out=[];
  if(x.t&&x.fc){const p=pct(x.t.totalConPost,x.fc);out.push(`Inhub ${pf.format(p)}% del proyectado.`)}
  if(x.hu){out.push(`HU ${pf.format(x.hu.avance)}% · ${nf.format(x.hu.pendiente)} pendientes · brecha de dotación ${x.hu.gap>=0?'+':''}${nf.format(x.hu.gap)}.`);const bad=x.hu.cpts.filter(z=>z.avance<huConfig(x.site).cptObjective).sort((a,b)=>a.avance-b.avance).slice(0,3);if(bad.length)out.push(`CPT comprometidos: ${bad.map(z=>z.cpt+' ('+pf.format(z.avance)+'%)').join(', ')}.`)}
+ if(x.t){const dd=dotData(x.site,x.t),tt=dd.cpts.reduce((a,g)=>{a.total+=g.total;a.onTime+=g.onTime;return a},{total:0,onTime:0}),v=tt.total?pct(tt.onTime,tt.total):0;out.push(`DOT ${pf.format(v)}% vs objetivo ${pf.format(dd.objective)}% (${v-dd.objective>=0?'+':''}${pf.format(v-dd.objective)} pp).`)}
  if(x.speed.real!=null&&x.speed.required!=null)out.push(`Velocidad real ${nf.format(Math.round(x.speed.real))} vs necesaria ${nf.format(Math.ceil(x.speed.required))} pza/h.`);
  return out;
 }
