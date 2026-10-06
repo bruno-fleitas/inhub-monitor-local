@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Inhub Monitor Local</title>
+  <link rel="stylesheet" href="./css/app.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">INHUB <span>LOCAL</span></div>
+    <nav>
+      <button class="nav active" data-view="resumen">Resumen ejecutivo</button>
+      <button class="nav" data-view="operacion">Operación</button>
+      <button class="nav" data-view="curvas">Curvas</button>
+      <button class="nav" data-view="mix">Mix / Voluminosos</button>
+      <button class="nav" data-view="subca">SubCA / CPT</button>
+      <button class="nav" data-view="jornales">Dotación / Jornales</button>
+      <button class="nav" data-view="mail">Vista Mail</button>
+      <button class="nav" data-view="config">Configuración</button>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1>Monitor Operativo Inhub</h1>
+        <p>Procesamiento local · arquitectura de alto rendimiento</p>
+      </div>
+      <span id="engineStatus" class="badge">Motor listo</span>
+    </header>
+
+    <section id="view-resumen" class="view active">
+      <div class="grid two">
+        <article class="card">
+          <h2>Soldati</h2>
+          <div class="source-grid">
+            <label>TMS<input id="tmsS" type="file" accept=".csv"></label>
+            <label>Arribos<input id="arrS" type="file" accept=".xlsx,.xls,.csv"></label>
+            <label>Labelless<input id="labS" type="file" accept=".csv"></label>
+            <label>Jornales<input id="jorS" type="file" accept=".xlsx,.xls,.csv"></label>
+          </div>
+          <div id="statusS" class="muted">Sin archivos cargados.</div>
+        </article>
+
+        <article class="card">
+          <h2>Esteban Echeverría</h2>
+          <div class="source-grid">
+            <label>TMS<input id="tmsE" type="file" accept=".csv"></label>
+            <label>Arribos<input id="arrE" type="file" accept=".xlsx,.xls,.csv"></label>
+            <label>Labelless<input id="labE" type="file" accept=".csv"></label>
+            <label>Jornales<input id="jorE" type="file" accept=".xlsx,.xls,.csv"></label>
+          </div>
+          <div id="statusE" class="muted">Sin archivos cargados.</div>
+        </article>
+      </div>
+
+      <article class="card">
+        <div class="toolbar">
+          <label>Fecha a analizar<input id="analysisDate" type="date"></label>
+          <label>Inicio curva
+            <select id="curveStart">
+              <option value="8">08:00</option>
+              <option value="9" selected>09:00</option>
+              <option value="10">10:00</option>
+            </select>
+          </label>
+          <button id="processBtn">Procesar</button>
+        </div>
+        <div id="progress" class="progress hidden"><div id="progressBar"></div></div>
+        <p id="message" class="muted">Cargá archivos para comenzar.</p>
+      </article>
+
+      <div id="summaryCards" class="kpi-grid"></div>
+    </section>
+
+    <section id="view-operacion" class="view"><article class="card"><h2>Operación</h2><div id="operationView" class="empty">Los resultados aparecerán acá.</div></article></section>
+    <section id="view-curvas" class="view"><article class="card"><h2>Curvas</h2><div id="curvesView" class="empty">Los resultados aparecerán acá.</div></article></section>
+    <section id="view-mix" class="view"><article class="card"><h2>Mix / Voluminosos</h2><div id="mixView" class="empty">Los resultados aparecerán acá.</div></article></section>
+    <section id="view-subca" class="view"><article class="card"><h2>SubCA / CPT</h2><div id="subcaView" class="empty">Los resultados aparecerán acá.</div></article></section>
+    <section id="view-jornales" class="view"><article class="card"><h2>Dotación / Jornales</h2><div id="jornalesView" class="empty">Motor independiente para Soldati y Echeverría.</div></article></section>
+    <section id="view-mail" class="view"><article class="card"><h2>Vista Mail</h2><div id="mailView" class="empty">El mail se generará desde los resultados ya procesados.</div></article></section>
+    <section id="view-config" class="view"><article class="card"><h2>Configuración</h2><div id="configView" class="empty">Configuración de SubCA, CPT y reglas operativas.</div></article></section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
