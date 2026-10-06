@@ -13,13 +13,15 @@ injectUI();
 
 document.querySelectorAll('.nav').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');$('view-'+b.dataset.view).classList.add('active')});
 
-const bindings=[['tmsS','soldati','tms'],['arrS','soldati','arrivals'],['labS','soldati','labelless'],['jorS','soldati','jornales'],['tmsE','echeverria','tms'],['arrE','echeverria','arrivals'],['labE','echeverria','labelless'],['jorE','echeverria','jornales']];
+const bindings=[['tmsS','soldati','tms'],['arrS','soldati','arrivals'],['labS','soldati','labelless'],['jorS','soldati','jornales'],['regS','soldati','registros'],['tmsE','echeverria','tms'],['arrE','echeverria','arrivals'],['labE','echeverria','labelless'],['jorE','echeverria','jornales'],['regE','echeverria','registros']];
 for(const [id,site,type] of bindings)$(id).onchange=async e=>{const f=e.target.files?.[0]||null;setFile(site,type,f);status(site);if(type==='jornales'&&f)await loadJ(site,f)};
 function status(site){const id=site==='soldati'?'statusS':'statusE',a=Object.entries(state.sites[site].files).filter(([,f])=>f).map(([k,f])=>k+': '+f.name);$(id).textContent=a.length?a.join(' · '):'Sin archivos cargados.'}
 function progress(p,msg){$('progress').classList.remove('hidden');$('progressBar').style.width=Math.max(0,Math.min(100,p))+'%';$('message').textContent=msg}
 function onceWorker(url,payload,onp){return new Promise((res,rej)=>{const w=new Worker(url);w.onmessage=e=>{const m=e.data||{};if(m.type==='PROGRESS')onp?.(m.progress||0);if(m.type==='RESULT'){w.terminate();res(m.result)}if(m.type==='ERROR'){w.terminate();rej(new Error(m.message))}};w.onerror=e=>{w.terminate();rej(new Error(e.message||'Worker error'))};w.postMessage(payload)})}
 const runT=(site,onp)=>state.sites[site].files.tms?onceWorker('./workers/tms.worker.js',{type:'PROCESS_TMS',file:state.sites[site].files.tms,labFile:state.sites[site].files.labelless||null,config:{selectedDate:state.config.analysisDate,cptStart:state.config.cptStart[site]}},onp):Promise.resolve(null);
 const runA=(site,onp)=>state.sites[site].files.arrivals?onceWorker('./workers/arrivals.worker.js',{type:'PROCESS_ARRIVALS',file:state.sites[site].files.arrivals,day:state.config.analysisDate},onp):Promise.resolve(null);
+const runR=(site,onp)=>state.sites[site].files.registros?onceWorker('./workers/registros.worker.js',{type:'PROCESS_REGISTROS',file:state.sites[site].files.registros,day:state.config.analysisDate},onp):Promise.resolve(null);
+const runL=(site,onp)=>state.sites[site].files.labelless?onceWorker('./workers/labelless.worker.js',{type:'PROCESS_LAB',file:state.sites[site].files.labelless},onp):Promise.resolve(null);
 
 function jw(site){return jworkers[site]||(jworkers[site]=new Worker('./workers/jornales.worker.js'))}
 function loadJ(site,file){jready[site]=false;const w=jw(site);return new Promise((res,rej)=>{const h=e=>{const m=e.data||{};if(m.type==='LOADED'){w.removeEventListener('message',h);jready[site]=true;state.sites[site].jornalesMeta=m.meta;fillGer();$('message').textContent=`Jornales ${names[site]} indexados: ${nf.format(m.meta.records)} registros.`;res(m.meta)}else if(m.type==='ERROR'){w.removeEventListener('message',h);rej(new Error(m.message))}};w.addEventListener('message',h);w.postMessage({type:'LOAD_JORNALES',file})})}
@@ -27,6 +29,46 @@ function calcJ(site,day,ger,d1,d2){if(!jready[site])return Promise.resolve(null)
 function fillGer(){const s=new Set();for(const site of ['soldati','echeverria'])for(const g of state.sites[site].jornalesMeta?.gerencias||[])s.add(g);$('jorGer').innerHTML='<option value="__ALL__">Todas</option>'+[...s].sort().map(x=>`<option>${esc(x)}</option>`).join('');const op=[...s].find(x=>x.toLowerCase()==='opsemli');if(op)$('jorGer').value=op}
 
 const universe=(a,start)=>{let packages=0,vehicles=0;if(a?.ok)for(let h=start;h<=23;h++){packages+=a.h[h].ship;vehicles+=a.h[h].veh}return{packages,vehicles}};
+function hoursUntil(lastTs,target){
+  if(!lastTs)return 0;
+  const d=new Date(lastTs),[hh,mm]=String(target||'22:00').split(':').map(Number),t=new Date(d);
+  t.setHours(hh||0,mm||0,0,0);if(t<=d)t.setDate(t.getDate()+1);
+  return Math.max(0,(t-d)/3600000);
+}
+function speedPanel(site){
+  const d=state.sites[site],r=d.registros,t=d.tms,fc=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
+  if(!r&&!t&&!d.arrivals)return '';
+  const target=state.config.speedTargetTime?.[site]||'22:00';
+  const lastTs=r?.lastTs||t?.maxInTs||null;
+  const arrived=r?.packages ?? d.arrivals?.totalShip ?? 0;
+  const bipeado=t?.totalConPost ?? 0;
+  const hrs=hoursUntil(lastTs,target);
+  const required=(fc&&hrs>0)?Math.max(0,fc-bipeado)/hrs:0;
+  const real=r?.currentSpeed||0;
+  const diff=arrived-bipeado,pend=fc?fc-bipeado:0;
+  const last=lastTs?new Date(lastTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-';
+  return `<div class="speed-panel">
+    <div class="speed-head"><h3>Velocidad Inhub / Descarga</h3><label>Hora objetivo<input type="time" data-speed-target="${site}" value="${target}"></label></div>
+    <table class="speed-table">
+      <tr><td>Últ. actualización</td><td>${last}</td><td></td></tr>
+      <tr><td>Proyectado</td><td>${fc?nf.format(fc):'-'}</td><td>${fc?'100,0%':'-'}</td></tr>
+      <tr><td>Arribado</td><td>${nf.format(arrived)}</td><td>${fc?pf.format(pct(arrived,fc))+'%':'-'}</td></tr>
+      <tr><td>Bipeado</td><td>${nf.format(bipeado)}</td><td>${fc?pf.format(pct(bipeado,fc))+'%':'-'}</td></tr>
+      <tr><td>Arribado - Bipeado</td><td class="${diff<0?'negnum':'posnum'}">${diff>0?'+':''}${nf.format(diff)}</td><td>${fc?pf.format(pct(diff,fc))+'%':'-'}</td></tr>
+      <tr><td>Proyectado - Bipeado</td><td>${fc?nf.format(pend):'-'}</td><td>${fc?pf.format(pct(pend,fc))+'%':'-'}</td></tr>
+      <tr><td>Velocidad real descarga</td><td><b>${nf.format(Math.round(real))}</b></td><td>pza/h</td></tr>
+      <tr><td>Velocidad necesaria a ${target}</td><td class="${real>=required?'speed-ok':'speed-bad'}"><b>${fc?nf.format(Math.ceil(required)):'-'}</b></td><td>pza/h</td></tr>
+      <tr><td>Brecha velocidad</td><td class="${real-required>=0?'speed-ok':'speed-bad'}"><b>${fc?(real-required>=0?'+':'')+nf.format(Math.round(real-required)):'-'}</b></td><td>pza/h</td></tr>
+    </table>
+    <div class="speed-note">Registros: solo CHOFER informado · TIPO DE OPERACION = Descarga · Accion = add · se excluyen horas 01 y 02.</div>
+  </div>`;
+}
+function bindSpeedTargets(){
+  document.querySelectorAll('[data-speed-target]').forEach(el=>el.onchange=()=>{
+    state.config.speedTargetTime[el.dataset.speedTarget]=el.value||'22:00';
+    operation();
+  });
+}
 function cut(a,start,c,type){const u=universe(a,start)[type];let x=0;if(a?.ok)for(let h=start;h<c&&h<=23;h++)x+=a.h[h][type==='packages'?'ship':'veh'];return pct(x,u)}
 function tmsTable(t,start){let cv=0,ct=0,r='';for(let h=start;h<=23;h++){const x=t.by[h];cv+=x.vol;ct+=x.tot;r+=`<tr><td>${h}:00</td><td>${nf.format(x.tot)}</td><td>${nf.format(x.vol)}</td><td>${pf.format(pct(x.vol,x.tot))}%</td><td>${pf.format(pct(cv,ct))}%</td><td>${nf.format(x.big)}</td><td>${nf.format(x.sb)}</td></tr>`}return `<div class="scroll"><table><tr><th>Hora</th><th>Total</th><th>Vol.</th><th>% hora</th><th>% acum.</th><th>Bigger</th><th>SB</th></tr>${r}</table></div>`}
 function arrTable(a,start){const u=universe(a,start);let cp=0,cv=0,r='';for(let h=start;h<=23;h++){cp+=a.h[h].ship;cv+=a.h[h].veh;r+=`<tr><td>${h}:00</td><td>${nf.format(a.h[h].ship)}</td><td>${nf.format(cp)}</td><td>${pf.format(pct(cp,u.packages))}%</td><td>${nf.format(a.h[h].veh)}</td><td>${nf.format(cv)}</td><td>${pf.format(pct(cv,u.vehicles))}%</td></tr>`}return `<div class="scroll"><table><tr><th>Hora</th><th>Paquetes</th><th>Paq. acum.</th><th>% paq.</th><th>Veh.</th><th>Veh. acum.</th><th>% veh.</th></tr>${r}</table></div>`}
@@ -34,11 +76,10 @@ function bars(rows,key,start){const mx=Math.max(1,...rows.slice(start).map(x=>x[
 
 function renderAll(){summary();operation();huControl();curves();mix();subca();jornales();mail()}
 function summary(){
-  let h='<div class="summary-sites">';
-  let any=false;
+  let h='<div class="summary-sites">',any=false;
   for(const site of ['soldati','echeverria']){
-    const d=state.sites[site],t=d.tms;
-    if(!t&&!d.arrivals&&!d.jornalesResult)continue;
+    const d=state.sites[site],t=d.tms,lab=t?.labelless||d.labellessStandalone;
+    if(!t&&!d.arrivals&&!d.jornalesResult&&!d.registros&&!lab)continue;
     any=true;
     const fc=Number($(site==='soldati'?'fcS':'fcE').value)||0;
     const pure=t?Math.max(0,t.vol-t.big-t.sb):0,base=t?Math.max(0,t.totalConPost-t.big-t.sb):0;
@@ -47,20 +88,31 @@ function summary(){
       <div class="kpi"><span>Proyectado 09:00</span><b>${fc?nf.format(fc):'-'}</b></div>
       <div class="kpi"><span>Inhub c/Post</span><b>${nf.format(t.totalConPost)}</b></div>
       <div class="kpi"><span>Inhub s/Post</span><b>${nf.format(t.totalSinPost)}</b></div>
-      <div class="kpi"><span>Voluminoso</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div>
-      <div class="kpi"><span>Vol. s/B/SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div>
+      <div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div>
+      <div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div>
       <div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div>
       <div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div>
-      <div class="kpi"><span>MELI Air</span><b>${nf.format(t.meli.arrivals)}</b><small>HU ${nf.format(t.meli.processed)}</small></div>
-      <div class="kpi"><span>Labelless</span><b>${nf.format(t.labelless.arrived)}</b><small>HU ${nf.format(t.labelless.processed)}</small></div>`:''}
+      <div class="kpi"><span>MELI Air</span><b>${nf.format(t.meli.arrivals)}</b><small>HU ${nf.format(t.meli.processed)} · ${pf.format(pct(t.meli.processed,t.meli.arrivals))}%</small></div>
+      `:''}
+      ${lab?`<div class="kpi"><span>Labelless</span><b>${nf.format(lab.arrived??lab.supplied??0)}</b><small>${lab.processed!=null?'HU '+nf.format(lab.processed)+' · '+pf.format(pct(lab.processed,lab.arrived))+'%':'Cargados '+nf.format(lab.supplied||0)}</small></div>`:''}
       ${d.arrivals?`<div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b><small>${nf.format(d.arrivals.totalShip)} paquetes</small></div>`:''}
+      ${d.registros?`<div class="kpi"><span>Velocidad descarga</span><b>${nf.format(Math.round(d.registros.currentSpeed||0))}</b><small>${nf.format(d.registros.packages||0)} arribados · pza/h actual</small></div>`:''}
       ${d.jornalesResult?`<div class="kpi"><span>Jornales</span><b>${nf.format(d.jornalesResult.total)}</b></div>`:''}
     </div></section>`;
   }
-  h+='</div>';
-  $('summaryCards').innerHTML=any?h:'<div class="empty">Procesá archivos.</div>';
-}function operation(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals)continue;h+=`<article class="card"><h2>${names[site]}</h2>`;if(d.tms)h+=`<div class="kpi-grid"><div class="kpi"><span>Inhub</span><b>${nf.format(d.tms.totalConPost)}</b></div><div class="kpi"><span>MELI Air procesado</span><b>${pf.format(pct(d.tms.meli.processed,d.tms.meli.arrivals))}%</b></div><div class="kpi"><span>Labelless no encontrados</span><b>${nf.format(d.tms.labelless.missing)}</b></div></div>`;if(d.arrivals)h+=`<h3>Arribos</h3><div class="kpi-grid"><div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b></div><div class="kpi"><span>Paquetes</span><b>${nf.format(d.arrivals.totalShip)}</b></div><div class="kpi"><span>% Semi</span><b>${pf.format(pct(d.arrivals.semi,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Chasis</span><b>${pf.format(pct(d.arrivals.chasis,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta</span><b>${pf.format(pct(d.arrivals.camionetaOther??d.arrivals.camioneta,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta MELI</span><b>${pf.format(pct(d.arrivals.camionetaMeli||0,d.arrivals.veh))}%</b></div></div><div class="cols"><div><h4>Cortes paquetes</h4>${cuts(d.arrivals,start,'packages')}</div><div><h4>Cortes vehículos</h4>${cuts(d.arrivals,start,'vehicles')}</div></div>`;h+='</article>'}$('operationView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
-function cuts(a,start,type){return '<table><tr><th>Corte</th><th>%</th></tr>'+[16,18,20].map(c=>`<tr><td>Pre ${c}</td><td>${pf.format(cut(a,start,c,type))}%</td></tr>`).join('')+`<tr><td>Post 20</td><td>${pf.format(100-cut(a,start,20,type))}%</td></tr></table>`}
+  h+='</div>';$('summaryCards').innerHTML=any?h:'<div class="empty">Procesá archivos.</div>';
+}function operation(){
+  const start=state.config.curveStart;let h='',any=false;
+  for(const site of ['soldati','echeverria']){
+    const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros&&!d.labellessStandalone&&!d.jornalesResult)continue;any=true;
+    h+=`<article class="card"><h2>${names[site]}</h2>`;
+    if(d.tms)h+=`<div class="kpi-grid"><div class="kpi"><span>Inhub</span><b>${nf.format(d.tms.totalConPost)}</b></div><div class="kpi"><span>MELI Air % HU</span><b>${pf.format(pct(d.tms.meli.processed,d.tms.meli.arrivals))}%</b></div><div class="kpi"><span>Labelless % HU</span><b>${pf.format(pct(d.tms.labelless.processed,d.tms.labelless.arrived))}%</b></div></div>`;
+    h+=speedPanel(site);
+    if(d.arrivals)h+=`<h3>Arribos</h3><div class="kpi-grid"><div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b></div><div class="kpi"><span>Paquetes</span><b>${nf.format(d.arrivals.totalShip)}</b></div><div class="kpi"><span>% Semi</span><b>${pf.format(pct(d.arrivals.semi,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Chasis</span><b>${pf.format(pct(d.arrivals.chasis,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta</span><b>${pf.format(pct(d.arrivals.camionetaOther??d.arrivals.camioneta,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta MELI</span><b>${pf.format(pct(d.arrivals.camionetaMeli||0,d.arrivals.veh))}%</b></div></div><div class="cols"><div><h4>Cortes paquetes</h4>${cuts(d.arrivals,start,'packages')}</div><div><h4>Cortes vehículos</h4>${cuts(d.arrivals,start,'vehicles')}</div></div>`;
+    h+='</article>';
+  }
+  $('operationView').innerHTML=any?h:'<article class="card empty">Sin datos.</article>';bindSpeedTargets();
+}function cuts(a,start,type){return '<table><tr><th>Corte</th><th>%</th></tr>'+[16,18,20].map(c=>`<tr><td>Pre ${c}</td><td>${pf.format(cut(a,start,c,type))}%</td></tr>`).join('')+`<tr><td>Post 20</td><td>${pf.format(100-cut(a,start,20,type))}%</td></tr></table>`}
 function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals)continue;h+=`<article class="card"><h2>${names[site]}</h2><div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3>${tmsTable(d.tms,start)}<h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
 function mix(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(!t)continue;const pure=Math.max(0,t.vol-t.big-t.sb),base=Math.max(0,t.totalConPost-t.big-t.sb);h+=`<article class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div></div>${tmsTable(t,start)}</article>`} $('mixView').innerHTML=h||'<article class="card empty">Sin TMS.</article>'}
 
@@ -262,6 +314,35 @@ $('copyPlain').onclick=async()=>{const d=document.createElement('div');d.innerHT
 
 $('exportBtn').onclick=()=>{const rows=[];for(const site of ['soldati','echeverria']){const d=state.sites[site],t=d.tms,a=d.arrivals,q=d.jornalesResult;if(!t&&!a&&!q)continue;rows.push({Site:names[site],Fecha:state.config.analysisDate||'',Inhub:t?.totalConPost??'',Inhub_s_Post:t?.totalSinPost??'',Voluminoso:t?.vol??'',Bigger:t?.big??'',SuperBigger:t?.sb??'',MELI_Air:t?.meli?.arrivals??'',Labelless:t?.labelless?.arrived??'',Vehiculos:a?.veh??'',Paquetes:a?.totalShip??'',Jornales:q?.total??'',Nuevo_1:q?.a??'',Nuevo_2:q?.b??'',Antiguo:q?.c??''})}const csv=[Object.keys(rows[0]||{}).join(';'),...rows.map(r=>Object.values(r).join(';'))].join('\n'),blob=new Blob(['\uFEFF'+csv],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Consolidado_Inhub_${state.config.analysisDate||'sin_fecha'}.csv`;a.click();URL.revokeObjectURL(a.href)};
 
-$('processBtn').onclick=async()=>{state.config.analysisDate=$('analysisDate').value||null;if(!state.config.analysisDate){$('message').textContent='Elegí la fecha a analizar antes de procesar.';return;}state.config.curveStart=+$('curveStart').value||9;state.config.cptStart.soldati=+$('cptS').value||10;state.config.cptStart.echeverria=+$('cptE').value||10;$('jorDate').value=state.config.analysisDate||$('jorDate').value;const jobs=[];for(const site of ['soldati','echeverria']){if(state.sites[site].files.tms)jobs.push([site,'tms']);if(state.sites[site].files.arrivals)jobs.push([site,'arr'])}try{$('processBtn').disabled=true;$('engineStatus').textContent='Procesando';let i=0;for(const[j,type]of jobs){const span=100/Math.max(1,jobs.length),base=i*span;if(type==='tms')state.sites[j].tms=await runT(j,p=>progress(base+p/100*span,`Procesando TMS ${names[j]}… ${p}%`));else state.sites[j].arrivals=await runA(j,p=>progress(base+p/100*span,`Procesando Arribos ${names[j]}…`));i++}if(jready.soldati||jready.echeverria)await runJ();else renderAll();progress(100,'Todo lo cargado fue procesado.');$('engineStatus').textContent='Motor listo';setTimeout(()=>$('progress').classList.add('hidden'),800)}catch(e){$('engineStatus').textContent='Error';$('message').textContent='Error: '+e.message}finally{$('processBtn').disabled=false}};
+$('processBtn').onclick=async()=>{
+  const anyFile=['soldati','echeverria'].some(site=>Object.values(state.sites[site].files).some(Boolean));
+  if(!anyFile){$('message').textContent='Cargá al menos un archivo.';return;}
+  const needsDate=['soldati','echeverria'].some(site=>['tms','arrivals','jornales','registros'].some(k=>state.sites[site].files[k]));
+  state.config.analysisDate=$('analysisDate').value||null;
+  if(needsDate&&!state.config.analysisDate){$('message').textContent='Elegí la fecha a analizar para ese archivo.';return;}
+  state.config.curveStart=+$('curveStart').value||9;state.config.cptStart.soldati=+$('cptS').value||10;state.config.cptStart.echeverria=+$('cptE').value||10;
+  if($('jorDate'))$('jorDate').value=state.config.analysisDate||$('jorDate').value;
+  const jobs=[];
+  for(const site of ['soldati','echeverria']){
+    if(state.sites[site].files.tms)jobs.push([site,'tms']);
+    if(state.sites[site].files.arrivals)jobs.push([site,'arr']);
+    if(state.sites[site].files.registros)jobs.push([site,'reg']);
+    if(state.sites[site].files.labelless)jobs.push([site,'lab']);
+  }
+  try{
+    $('processBtn').disabled=true;$('engineStatus').textContent='Procesando';let i=0;
+    for(const [site,type] of jobs){
+      const span=100/Math.max(1,jobs.length),base=i*span;
+      if(type==='tms')state.sites[site].tms=await runT(site,p=>progress(base+p/100*span,`Procesando TMS ${names[site]}… ${p}%`));
+      else if(type==='arr')state.sites[site].arrivals=await runA(site,p=>progress(base+p/100*span,`Procesando Arribos ${names[site]}…`));
+      else if(type==='reg')state.sites[site].registros=await runR(site,p=>progress(base+p/100*span,`Procesando registros ${names[site]}…`));
+      else if(type==='lab')state.sites[site].labellessStandalone=await runL(site,p=>progress(base+p/100*span,`Procesando Labelless ${names[site]}…`));
+      i++;
+    }
+    if(jready.soldati||jready.echeverria)await runJ();else renderAll();
+    progress(100,'Todo lo cargado fue procesado.');$('engineStatus').textContent='Motor listo';setTimeout(()=>$('progress').classList.add('hidden'),800);
+  }catch(e){$('engineStatus').textContent='Error';$('message').textContent='Error: '+e.message}
+  finally{$('processBtn').disabled=false}
+};
 
 await initMasters();renderAll();
