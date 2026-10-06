@@ -279,6 +279,7 @@ function huDashboard(site,t){
         <h3>Bipeo HU por hora</h3>${huHourlyTable(t)}
       </div>
     </div>
+    <div class="hu-tracking-block"><h3>Seguimiento por CPT y SubCA</h3><div class="hu-note">Avance, pendientes y conectados activos por cada SubCA dentro de su CPT.</div>${huTrackingTable(site,t)}</div>
     <div class="hu-bottom-grid">
       <div><h3>Auditoría CPT · objetivo ${pf.format(cfg.cptObjective)}%</h3><div class="hu-scroll"><table class="hu-table compact"><tr><th>CPT</th><th>Avance</th><th>Pendiente</th><th>Estado</th></tr>${rows.map(x=>{const a=huPct(x),ok=a>=cfg.cptObjective;return `<tr><td>${x.cpt}</td><td>${pf.format(a)}%</td><td>${nf.format(x.pendiente)}</td><td><span class="hu-pill ${ok?'hu-good':a>=95?'hu-warn':'hu-bad'}">${ok?'CUMPLE':'PENDIENTE'}</span></td></tr>`}).join('')}</table></div><div class="hu-note">${bad.length?bad.length+' CPT debajo del objetivo final':'Todos los CPT cumplen el objetivo final'}.</div></div>
       <div><h3>Productividad HU · Top usuarios</h3><div class="hu-scroll">${huProductivity(t)}</div></div>
@@ -292,6 +293,63 @@ function bindHuControls(){
     huControl();
   });
 }
+
+function huDetailRows(site,t){
+  const mp=new Map(masters[site].map(x=>[String(x.subca).toLowerCase(),x]));
+  const activeBySub=new Map();
+  for(const a of t.hu?.activeUsers||[]){
+    const k=String(a.subca||'SIN SUBCA');
+    if(!activeBySub.has(k))activeBySub.set(k,new Set());
+    activeBySub.get(k).add(a.user);
+  }
+  return (t.hu?.subca||[]).map(g=>{
+    const cfg=mp.get(String(g.subca).toLowerCase())||{};
+    return {
+      ...g,
+      ola:cfg.ola||'',
+      cpt:cfg.cpt??'SIN CONFIG',
+      indicador:cfg.indicador||'',
+      users:activeBySub.get(String(g.subca))?.size||0,
+      avance:g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0
+    };
+  }).sort((a,b)=>String(a.cpt).localeCompare(String(b.cpt),'es',{numeric:true})||b.etiquetado-a.etiquetado);
+}
+function huCptTracking(site,t){
+  const rows=huDetailRows(site,t),groups=new Map();
+  for(const r of rows){
+    const k=String(r.cpt);
+    if(!groups.has(k))groups.set(k,{cpt:r.cpt,etiquetado:0,abierto:0,cerrado:0,pendiente:0,users:0,subcas:[]});
+    const g=groups.get(k);
+    g.etiquetado+=r.etiquetado;g.abierto+=r.abierto;g.cerrado+=r.cerrado;g.pendiente+=r.pendiente;g.users+=r.users;g.subcas.push(r);
+  }
+  return [...groups.values()].map(g=>({...g,avance:g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0}))
+    .sort((a,b)=>String(a.cpt).localeCompare(String(b.cpt),'es',{numeric:true}));
+}
+function huTrackingTable(site,t){
+  const groups=huCptTracking(site,t);
+  if(!groups.length)return '<div class="hu-empty">Sin información por CPT/SubCA.</div>';
+  return `<div class="cpt-track">${groups.map(g=>`
+    <details class="cpt-group" open>
+      <summary>
+        <span class="cpt-name">CPT ${esc(g.cpt)}</span>
+        <span>${g.subcas.length} SubCA</span>
+        <span>${nf.format(g.etiquetado)} piezas</span>
+        <span>${pf.format(g.avance)}% avance</span>
+        <span>${nf.format(g.users)} conectados</span>
+        <span class="hu-pill ${huTone(g.avance,99.5)}">${nf.format(g.pendiente)} pend.</span>
+      </summary>
+      <div class="hu-scroll cpt-sub-scroll"><table class="hu-table compact">
+        <tr><th>SubCA</th><th>Ola</th><th>Indicador</th><th>Etiquetado</th><th>HU Abierto</th><th>HU Cerrado</th><th>Pendiente</th><th>% Avance</th><th>Conectados</th></tr>
+        ${g.subcas.map(r=>`<tr>
+          <td>${esc(r.subca)}</td><td>${esc(r.ola||'-')}</td><td>${esc(r.indicador||'-')}</td>
+          <td>${nf.format(r.etiquetado)}</td><td>${nf.format(r.abierto)}</td><td>${nf.format(r.cerrado)}</td>
+          <td class="hu-pend">${nf.format(r.pendiente)}</td>
+          <td><span class="hu-pill ${huTone(r.avance,99.5)}">${pf.format(r.avance)}%</span></td>
+          <td>${nf.format(r.users)}</td>
+        </tr>`).join('')}
+      </table></div>
+    </details>`).join('')}</div>`;
+}
 function huControl(){
   let h='';
   for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(t?.hu)h+=huDashboard(site,t)}
@@ -303,7 +361,7 @@ async function initMasters(){const[s,e]=await Promise.all([fetch('./js/config/ma
 function masterUI(){let h='';for(const site of ['soldati','echeverria'])h+=`<div class="card"><h3>${names[site]}</h3><div class="master-actions"><button class="smallbtn primary" data-add="${site}">+ Agregar</button><button class="smallbtn ghost" data-reset="${site}">Restaurar</button></div><div class="scroll"><table><tr><th>SubCA</th><th>Ola</th><th>CPT</th><th>Indicador</th><th></th></tr>${masters[site].map((x,i)=>`<tr><td><input data-site="${site}" data-i="${i}" data-f="subca" value="${esc(x.subca)}"></td><td><input data-site="${site}" data-i="${i}" data-f="ola" value="${esc(x.ola)}"></td><td><input type="number" data-site="${site}" data-i="${i}" data-f="cpt" value="${x.cpt}"></td><td><select data-site="${site}" data-i="${i}" data-f="indicador"><option ${x.indicador==='prioritario'?'selected':''}>prioritario</option><option ${x.indicador==='standard'?'selected':''}>standard</option></select></td><td><button class="smallbtn danger" data-del="${site}" data-i="${i}">X</button></td></tr>`).join('')}</table></div></div>`; $('configView').innerHTML=h;document.querySelectorAll('[data-f]').forEach(el=>el.onchange=()=>{const s=el.dataset.site,i=+el.dataset.i,f=el.dataset.f;masters[s][i][f]=f==='cpt'?Number(el.value):el.value.trim();save(s);subca()});document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{masters[b.dataset.del].splice(+b.dataset.i,1);save(b.dataset.del);masterUI();subca()});document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{masters[b.dataset.add].push({subca:'NUEVA',ola:'',cpt:0,indicador:'prioritario'});save(b.dataset.add);masterUI()});document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>{masters[b.dataset.reset]=structuredClone(b.dataset.reset==='soldati'?state.defaults.masterS:state.defaults.masterE);save(b.dataset.reset);masterUI();subca()})}
 function save(site){localStorage.setItem(site==='soldati'?'inhubMasterS':'inhubMasterE',JSON.stringify(masters[site]))}
 
-async function runJ(){const day=$('jorDate').value||state.config.analysisDate;if(!day)return;const ger=$('jorGer').value||'__ALL__',d1=Math.max(0,+$('jorD1').value||3),d2=Math.max(d1+1,+$('jorD2').value||10);for(const site of ['soldati','echeverria'])state.sites[site].jornalesResult=await calcJ(site,day,ger,d1,d2);renderAll()}
+async function runJ(){const day=$('jorDate').value||state.config.analysisDate||state.sites.soldati.jornalesMeta?.latestDate||state.sites.echeverria.jornalesMeta?.latestDate;if(!day)return;const ger=$('jorGer').value||'__ALL__',d1=Math.max(0,+$('jorD1').value||3),d2=Math.max(d1+1,+$('jorD2').value||10);for(const site of ['soldati','echeverria'])state.sites[site].jornalesResult=await calcJ(site,day,ger,d1,d2);renderAll()}
 function jornales(){let h='<div class="grid two">',any=false;for(const site of ['soldati','echeverria']){const q=state.sites[site].jornalesResult;if(!q)continue;any=true;h+=`<div class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Jornales</span><b>${nf.format(q.total)}</b></div><div class="kpi"><span>Nuevos hoy</span><b>${nf.format(q.newToday)}</b></div><div class="kpi"><span>Nuevo -${q.d1}</span><b>${nf.format(q.a)}</b><small>${pf.format(pct(q.a,q.total))}%</small></div><div class="kpi"><span>Nuevo ${q.d1+1}-${q.d2}</span><b>${nf.format(q.b)}</b><small>${pf.format(pct(q.b,q.total))}%</small></div><div class="kpi"><span>Antiguo</span><b>${nf.format(q.c)}</b><small>${pf.format(pct(q.c,q.total))}%</small></div></div></div>`}h+='</div>';$('jornalesView').innerHTML=any?h:'<div class="empty">Cargá Jornales y analizá.</div>'}
 $('jorRun').onclick=runJ;$('analysisDate').onchange=()=>{$('jorDate').value=$('analysisDate').value};
 
@@ -317,9 +375,7 @@ $('exportBtn').onclick=()=>{const rows=[];for(const site of ['soldati','echeverr
 $('processBtn').onclick=async()=>{
   const anyFile=['soldati','echeverria'].some(site=>Object.values(state.sites[site].files).some(Boolean));
   if(!anyFile){$('message').textContent='Cargá al menos un archivo.';return;}
-  const needsDate=['soldati','echeverria'].some(site=>['tms','arrivals','jornales','registros'].some(k=>state.sites[site].files[k]));
   state.config.analysisDate=$('analysisDate').value||null;
-  if(needsDate&&!state.config.analysisDate){$('message').textContent='Elegí la fecha a analizar para ese archivo.';return;}
   state.config.curveStart=+$('curveStart').value||9;state.config.cptStart.soldati=+$('cptS').value||10;state.config.cptStart.echeverria=+$('cptE').value||10;
   if($('jorDate'))$('jorDate').value=state.config.analysisDate||$('jorDate').value;
   const jobs=[];
