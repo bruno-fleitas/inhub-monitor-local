@@ -137,3 +137,12 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 9px;b
   .cpt-group summary{grid-template-columns:90px 80px 1fr 100px 110px}
   .cpt-group summary span:nth-child(3){display:none}
 }
+
+
+.user-link{border:0;background:#17365d;color:#7fc3ff;font-weight:800;border-radius:999px;padding:4px 9px;cursor:pointer;min-width:34px}
+.user-link:hover{background:#214a7a;color:#fff}.user-zero{color:#6f7f95}
+.user-modal{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:24px;z-index:9999}
+.user-modal-card{width:min(620px,96vw);max-height:82vh;background:#0e1624;border:1px solid #2f4466;border-radius:14px;box-shadow:0 20px 60px #0008;overflow:hidden}
+.user-modal-head{display:flex;justify-content:space-between;align-items:flex-start;padding:16px 18px;background:#18243a;border-bottom:1px solid #2f4466}
+.user-modal-head h3{margin:0 0 4px;color:#fff;font-size:18px}.user-modal-head small{color:#93a4bd}
+.user-close{border:0;background:transparent;color:#fff;font-size:28px;line-height:1;cursor:pointer}.user-modal-body{padding:14px;overflow:auto;max-height:68vh}
