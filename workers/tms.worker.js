@@ -9,7 +9,7 @@ function parts(v){
  if(m)return{y:+m[1],m:+m[2],d:+m[3],h:m[4]!==undefined?+m[4]:null,min:m[5]?+m[5]:0};
  return null
 }
-const ts=p=>p&&p.y!=null?Date.UTC(p.y,p.m-1,p.d,p.h||0,p.min||0):null;
+const ts=p=>p&&p.y!=null?new Date(p.y,p.m-1,p.d,p.h||0,p.min||0,0,0).getTime():null;
 function sameDay(p,day){if(!p||p.y==null)return false;if(!day)return true;const[y,m,d]=day.split('-').map(Number);return p.y===y&&p.m===m&&p.d===d}
 function classify(w,h,l,wi){w=num(w);h=num(h);l=num(l);wi=num(wi);const kg=w/10000;if(h>2000||l>2000||wi>2000||kg>50)return'SuperBigger';if(h>1500||l>1500||wi>1500||kg>30)return'Bigger';if(h>=500||l>=500||wi>=500||kg>=20)return'Voluminoso';return'Paqueteria'}
 function line(line,delim){const out=[];let f='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(q){if(c==='"'&&line[i+1]==='"'){f+='"';i++}else if(c==='"')q=false;else f+=c}else{if(c==='"')q=true;else if(c===delim){out.push(f);f=''}else f+=c}}out.push(f);return out}
