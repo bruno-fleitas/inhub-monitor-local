@@ -78,7 +78,7 @@ function renderAll(){summary();operation();huControl();curves();mix();subca();jo
 function summary(){
   let h='<div class="summary-sites">',any=false;
   for(const site of ['soldati','echeverria']){
-    const d=state.sites[site],t=d.tms,lab=t?.labelless||d.labellessStandalone;
+    const d=state.sites[site],t=d.tms,lab=d.files.labelless?(t?.labelless||d.labellessStandalone):null;
     if(!t&&!d.arrivals&&!d.jornalesResult&&!d.registros&&!lab)continue;
     any=true;
     const fc=Number($(site==='soldati'?'fcS':'fcE').value)||0;
@@ -106,7 +106,7 @@ function summary(){
   for(const site of ['soldati','echeverria']){
     const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros&&!d.labellessStandalone&&!d.jornalesResult)continue;any=true;
     h+=`<article class="card"><h2>${names[site]}</h2>`;
-    if(d.tms)h+=`<div class="kpi-grid"><div class="kpi"><span>Inhub</span><b>${nf.format(d.tms.totalConPost)}</b></div><div class="kpi"><span>MELI Air % HU</span><b>${pf.format(pct(d.tms.meli.processed,d.tms.meli.arrivals))}%</b></div><div class="kpi"><span>Labelless % HU</span><b>${pf.format(pct(d.tms.labelless.processed,d.tms.labelless.arrived))}%</b></div></div>`;
+    if(d.tms)h+=`<div class="kpi-grid"><div class="kpi"><span>Inhub</span><b>${nf.format(d.tms.totalConPost)}</b></div><div class="kpi"><span>MELI Air % HU</span><b>${pf.format(pct(d.tms.meli.processed,d.tms.meli.arrivals))}%</b></div>${d.files.labelless?`<div class="kpi"><span>Labelless % HU</span><b>${pf.format(pct(d.tms.labelless.processed,d.tms.labelless.arrived))}%</b></div>`:''}</div>`;
     h+=speedPanel(site);
     if(d.arrivals)h+=`<h3>Arribos</h3><div class="kpi-grid"><div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b></div><div class="kpi"><span>Paquetes</span><b>${nf.format(d.arrivals.totalShip)}</b></div><div class="kpi"><span>% Semi</span><b>${pf.format(pct(d.arrivals.semi,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Chasis</span><b>${pf.format(pct(d.arrivals.chasis,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta</span><b>${pf.format(pct(d.arrivals.camionetaOther??d.arrivals.camioneta,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta MELI</span><b>${pf.format(pct(d.arrivals.camionetaMeli||0,d.arrivals.veh))}%</b></div></div><div class="cols"><div><h4>Cortes paquetes</h4>${cuts(d.arrivals,start,'packages')}</div><div><h4>Cortes vehículos</h4>${cuts(d.arrivals,start,'vehicles')}</div></div>`;
     h+='</article>';
