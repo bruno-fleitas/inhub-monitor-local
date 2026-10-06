@@ -306,6 +306,9 @@ function huDetailRows(site,t){
     const cfg=mp.get(String(g.subca).toLowerCase())||{};
     return {
       ...g,
+      finalizado:g.finalizado||0,
+      enDespacho:g.enDespacho||0,
+      despachado:g.despachado||0,
       ola:cfg.ola||'',
       cpt:cfg.cpt??'SIN CONFIG',
       indicador:cfg.indicador||'',
@@ -318,9 +321,9 @@ function huCptTracking(site,t){
   const rows=huDetailRows(site,t),groups=new Map();
   for(const r of rows){
     const k=String(r.cpt);
-    if(!groups.has(k))groups.set(k,{cpt:r.cpt,etiquetado:0,abierto:0,cerrado:0,pendiente:0,users:0,subcas:[]});
+    if(!groups.has(k))groups.set(k,{cpt:r.cpt,etiquetado:0,abierto:0,cerrado:0,pendiente:0,finalizado:0,enDespacho:0,despachado:0,users:0,subcas:[]});
     const g=groups.get(k);
-    g.etiquetado+=r.etiquetado;g.abierto+=r.abierto;g.cerrado+=r.cerrado;g.pendiente+=r.pendiente;g.users+=r.users;g.subcas.push(r);
+    g.etiquetado+=r.etiquetado;g.abierto+=r.abierto;g.cerrado+=r.cerrado;g.pendiente+=r.pendiente;g.finalizado+=r.finalizado;g.enDespacho+=r.enDespacho;g.despachado+=r.despachado;g.users+=r.users;g.subcas.push(r);
   }
   return [...groups.values()].map(g=>({...g,avance:g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0}))
     .sort((a,b)=>String(a.cpt).localeCompare(String(b.cpt),'es',{numeric:true}));
@@ -336,16 +339,17 @@ function huTrackingTable(site,t){
         <span>${nf.format(g.etiquetado)} piezas</span>
         <span>${pf.format(g.avance)}% avance</span>
         <span>${nf.format(g.users)} conectados</span>
+        <span>${nf.format(g.finalizado)} fin. · ${nf.format(g.enDespacho)} desp. · ${nf.format(g.despachado)} sal.</span>
         <span class="hu-pill ${huTone(g.avance,99.5)}">${nf.format(g.pendiente)} pend.</span>
       </summary>
       <div class="hu-scroll cpt-sub-scroll"><table class="hu-table compact">
-        <tr><th>SubCA</th><th>Ola</th><th>Indicador</th><th>Etiquetado</th><th>HU Abierto</th><th>HU Cerrado</th><th>Pendiente</th><th>% Avance</th><th>Conectados</th></tr>
+        <tr><th>SubCA</th><th>Ola</th><th>Indicador</th><th>Etiquetado</th><th>HU Abierto</th><th>HU Cerrado</th><th>Pendiente</th><th>% Avance</th><th>Conectados</th><th>HU Finalizado</th><th>En despacho</th><th>Despachado</th></tr>
         ${g.subcas.map(r=>`<tr>
           <td>${esc(r.subca)}</td><td>${esc(r.ola||'-')}</td><td>${esc(r.indicador||'-')}</td>
           <td>${nf.format(r.etiquetado)}</td><td>${nf.format(r.abierto)}</td><td>${nf.format(r.cerrado)}</td>
           <td class="hu-pend">${nf.format(r.pendiente)}</td>
           <td><span class="hu-pill ${huTone(r.avance,99.5)}">${pf.format(r.avance)}%</span></td>
-          <td>${nf.format(r.users)}</td>
+          <td>${nf.format(r.users)}</td><td>${nf.format(r.finalizado)}</td><td>${nf.format(r.enDespacho)}</td><td>${nf.format(r.despachado)}</td>
         </tr>`).join('')}
       </table></div>
     </details>`).join('')}</div>`;
