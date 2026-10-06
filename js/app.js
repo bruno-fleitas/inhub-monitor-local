@@ -32,7 +32,7 @@ function tmsTable(t,start){let cv=0,ct=0,r='';for(let h=start;h<=23;h++){const x
 function arrTable(a,start){const u=universe(a,start);let cp=0,cv=0,r='';for(let h=start;h<=23;h++){cp+=a.h[h].ship;cv+=a.h[h].veh;r+=`<tr><td>${h}:00</td><td>${nf.format(a.h[h].ship)}</td><td>${nf.format(cp)}</td><td>${pf.format(pct(cp,u.packages))}%</td><td>${nf.format(a.h[h].veh)}</td><td>${nf.format(cv)}</td><td>${pf.format(pct(cv,u.vehicles))}%</td></tr>`}return `<div class="scroll"><table><tr><th>Hora</th><th>Paquetes</th><th>Paq. acum.</th><th>% paq.</th><th>Veh.</th><th>Veh. acum.</th><th>% veh.</th></tr>${r}</table></div>`}
 function bars(rows,key,start){const mx=Math.max(1,...rows.slice(start).map(x=>x[key]||0));return '<div class="chart">'+Array.from({length:24-start},(_,i)=>i+start).map(h=>`<div class="barrow"><span class="barlabel">${h}:00</span><div class="bartrack"><div class="barfill" style="width:${pct(rows[h][key]||0,mx)}%"></div></div><span class="barvalue">${nf.format(rows[h][key]||0)}</span></div>`).join('')+'</div>'}
 
-function renderAll(){summary();operation();curves();mix();subca();jornales();mail()}
+function renderAll(){summary();operation();huControl();curves();mix();subca();jornales();mail()}
 function summary(){let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site],t=d.tms;if(!t&&!d.arrivals&&!d.jornalesResult)continue;const fc=Number($(site==='soldati'?'fcS':'fcE').value)||0,pure=t?Math.max(0,t.vol-t.big-t.sb):0,base=t?Math.max(0,t.totalConPost-t.big-t.sb):0;h+=`<div class="site-summary"><h2>${names[site]}</h2><div class="kpi-grid">${t?`<div class="kpi"><span>Proyectado 09:00</span><b>${fc?nf.format(fc):'-'}</b></div><div class="kpi"><span>Inhub c/Post</span><b>${nf.format(t.totalConPost)}</b></div><div class="kpi"><span>Inhub s/Post</span><b>${nf.format(t.totalSinPost)}</b></div><div class="kpi"><span>Voluminoso</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Vol. s/B/SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div><div class="kpi"><span>MELI Air</span><b>${nf.format(t.meli.arrivals)}</b><small>HU ${nf.format(t.meli.processed)}</small></div><div class="kpi"><span>Labelless</span><b>${nf.format(t.labelless.arrived)}</b><small>HU ${nf.format(t.labelless.processed)}</small></div>`:''}${d.arrivals?`<div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b><small>${nf.format(d.arrivals.totalShip)} paquetes</small></div>`:''}${d.jornalesResult?`<div class="kpi"><span>Jornales</span><b>${nf.format(d.jornalesResult.total)}</b></div>`:''}</div></div>`} $('summaryCards').innerHTML=h||'<div class="empty">Procesá archivos.</div>'}
 function operation(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals)continue;h+=`<article class="card"><h2>${names[site]}</h2>`;if(d.tms)h+=`<div class="kpi-grid"><div class="kpi"><span>Inhub</span><b>${nf.format(d.tms.totalConPost)}</b></div><div class="kpi"><span>MELI Air procesado</span><b>${pf.format(pct(d.tms.meli.processed,d.tms.meli.arrivals))}%</b></div><div class="kpi"><span>Labelless no encontrados</span><b>${nf.format(d.tms.labelless.missing)}</b></div></div>`;if(d.arrivals)h+=`<h3>Arribos</h3><div class="kpi-grid"><div class="kpi"><span>Vehículos</span><b>${nf.format(d.arrivals.veh)}</b></div><div class="kpi"><span>Paquetes</span><b>${nf.format(d.arrivals.totalShip)}</b></div><div class="kpi"><span>% Semi</span><b>${pf.format(pct(d.arrivals.semi,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Chasis</span><b>${pf.format(pct(d.arrivals.chasis,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta</span><b>${pf.format(pct(d.arrivals.camionetaOther??d.arrivals.camioneta,d.arrivals.veh))}%</b></div><div class="kpi"><span>% Camioneta MELI</span><b>${pf.format(pct(d.arrivals.camionetaMeli||0,d.arrivals.veh))}%</b></div></div><div class="cols"><div><h4>Cortes paquetes</h4>${cuts(d.arrivals,start,'packages')}</div><div><h4>Cortes vehículos</h4>${cuts(d.arrivals,start,'vehicles')}</div></div>`;h+='</article>'}$('operationView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
 function cuts(a,start,type){return '<table><tr><th>Corte</th><th>%</th></tr>'+[16,18,20].map(c=>`<tr><td>Pre ${c}</td><td>${pf.format(cut(a,start,c,type))}%</td></tr>`).join('')+`<tr><td>Post 20</td><td>${pf.format(100-cut(a,start,20,type))}%</td></tr></table>`}
@@ -101,6 +101,85 @@ function vehicleShareTable(a){
     ['Semi',a.semi||0],['Chasis',a.chasis||0],['Camioneta',co],['Camioneta MELI',cm]
   ];
   return `<div class="vehicle-share"><h4>Participación por tipo de unidad</h4><table><tr><th>Unidad</th><th>Q</th><th>%</th></tr>${rows.map(([u,n])=>`<tr><td>${u}</td><td>${nf.format(n)}</td><td>${pf.format(pct(n,a.veh))}%</td></tr>`).join('')}<tr><td><b>Total vehículos</b></td><td><b>${nf.format(a.veh)}</b></td><td><b>100,0%</b></td></tr></table></div>`}
+
+function huConfig(site){
+  state.config.hu ??= {};
+  state.config.hu[site] ??= {hours:5,prod:190,objective:65,cptObjective:99.5};
+  return state.config.hu[site];
+}
+function huCptRows(site,t){
+  const mp=new Map(masters[site].map(x=>[String(x.subca).toLowerCase(),x]));
+  const m=new Map();
+  for(const g of t.hu?.subca||[]){
+    const cfg=mp.get(String(g.subca).toLowerCase()),cpt=cfg?.cpt??'SIN CONFIG';
+    if(!m.has(String(cpt)))m.set(String(cpt),{cpt,etiquetado:0,abierto:0,cerrado:0,pendiente:0,subcas:0,users:new Set()});
+    const x=m.get(String(cpt));x.etiquetado+=g.etiquetado;x.abierto+=g.abierto;x.cerrado+=g.cerrado;x.pendiente+=g.pendiente;x.subcas++;
+  }
+  for(const a of t.hu?.activeUsers||[]){
+    const cfg=mp.get(String(a.subca).toLowerCase()),cpt=cfg?.cpt??'SIN CONFIG';
+    const x=m.get(String(cpt)); if(x)x.users.add(a.user);
+  }
+  return [...m.values()].sort((a,b)=>String(a.cpt).localeCompare(String(b.cpt),'es',{numeric:true}));
+}
+function huPct(x){return x.etiquetado?pct(x.abierto+x.cerrado,x.etiquetado):0}
+function huTone(v,obj){return v>=obj?'hu-good':v>=Math.max(0,obj-10)?'hu-warn':'hu-bad'}
+function huHourlyTable(t){
+  const vals=(t.hu?.byHour||[]).map((v,h)=>({h,v})).filter(x=>x.v>0);
+  if(!vals.length)return '<div class="hu-empty">Sin bipeos HU por hora para la fecha seleccionada.</div>';
+  const total=vals.reduce((s,x)=>s+x.v,0),prom=(total+total)/(vals.length+1),max=Math.max(...vals.map(x=>x.v),1);
+  return `<div class="hu-bipe-grid"><div><table class="hu-table compact"><tr><th>Hora</th><th>HU / piezas</th></tr>${vals.map(x=>`<tr><td>${x.h}</td><td>${nf.format(x.v)}</td></tr>`).join('')}<tr class="total"><td>Total general</td><td>${nf.format(total)}</td></tr></table></div><div><div class="hu-prom"><span>Promedio produc. total</span><b>${nf.format(Math.round(prom))}</b><small>Mismo criterio del monitor de referencia: promedio incluyendo Total general.</small></div></div></div><div class="hu-bars">${vals.map(x=>`<div class="hu-bar-item"><span>${x.h}</span><div class="hu-bar-track"><i style="height:${Math.max(3,pct(x.v,max))}%"></i></div><b>${nf.format(x.v)}</b></div>`).join('')}</div>`;
+}
+function huProductivity(t){
+  const rows=(t.hu?.userStats||[]).slice(0,12);
+  if(!rows.length)return '<div class="hu-empty">Sin usuarios HU detectados.</div>';
+  return `<table class="hu-table compact"><tr><th>Usuario HU</th><th>Piezas / eventos</th><th>Última actividad</th></tr>${rows.map(x=>`<tr><td>${esc(x.user)}</td><td>${nf.format(x.count)}</td><td>${x.last?new Date(x.last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):'-'}</td></tr>`).join('')}</table>`;
+}
+function huDashboard(site,t){
+  const cfg=huConfig(site),tot=t.hu?.totals||{etiquetado:0,abierto:0,cerrado:0,pendiente:0};
+  const avance=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
+  const rows=huCptRows(site,t),active=new Set((t.hu?.activeUsers||[]).map(x=>x.user)).size;
+  const hours=Math.max(.25,Number(cfg.hours)||5),prod=Math.max(1,Number(cfg.prod)||190);
+  const pph=tot.pendiente/hours,need=Math.round(pph/prod),realProd=active*prod,capacity=realProd*hours;
+  const bad=rows.filter(x=>huPct(x)<cfg.cptObjective);
+  const update=t.hu?.maxOutTs?new Date(t.hu.maxOutTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}):'-';
+  return `<section class="hu-dashboard" data-hu-site="${site}">
+    <div class="hu-head"><div><span class="hu-brand">OCASA</span><h2>${names[site]} · Control HU</h2><small>Última actividad HU ${update}</small></div><div class="hu-head-actions"><label>Objetivo avance %<input type="number" step="0.1" data-hucfg="objective" data-site="${site}" value="${cfg.objective}"></label><label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label></div></div>
+    <div class="hu-layout">
+      <div class="hu-left">
+        <div class="hu-kpi-panel">
+          <table class="hu-summary"><tr><td>TOTAL Piezas</td><td>${nf.format(tot.etiquetado)}</td></tr><tr><td>Piezas con HU Abierto</td><td>${nf.format(tot.abierto)}</td></tr><tr><td>Piezas HU Cerrado</td><td>${nf.format(tot.cerrado)}</td></tr><tr><td>Piezas Pendientes de HU</td><td>${nf.format(tot.pendiente)}</td></tr></table>
+          <div class="hu-big ${huTone(avance,cfg.objective)}">${pf.format(avance)}%</div>
+        </div>
+        <div class="hu-titlebar">CONTROL - CPT / XD</div>
+        <h3>Armado de HU</h3>
+        <div class="hu-scroll"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>Piezas HU-Abierto</th><th>Piezas HU-Cerrado</th><th>Piezas Pend. HU</th><th>% Avance</th><th>Users HU Activos</th></tr>
+        ${rows.map(x=>{const a=huPct(x);return `<tr><td>${x.cpt}</td><td>${nf.format(x.etiquetado)}</td><td>${nf.format(x.abierto)}</td><td>${nf.format(x.cerrado)}</td><td class="hu-pend">${nf.format(x.pendiente)}</td><td><span class="hu-pill ${huTone(a,cfg.objective)}">${pf.format(a)}%</span></td><td>${x.users.size||'-'}</td></tr>`}).join('')}
+        <tr class="total"><td>Total</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td>${pf.format(avance)}%</td><td>${active}</td></tr></table></div>
+      </div>
+      <div class="hu-right">
+        <h3>Datos operativos</h3>
+        <div class="hu-ops">
+          <table class="hu-table op"><tr><td>total</td><td>${nf.format(tot.etiquetado)}</td></tr><tr><td>objetivo</td><td>${nf.format(Math.round(tot.etiquetado*cfg.objective/100))}</td></tr><tr><td>piezas procesadas</td><td>${nf.format(tot.abierto+tot.cerrado)}</td></tr><tr><td>HU cerrado</td><td>${nf.format(tot.cerrado)}</td></tr><tr><td>pendiente</td><td>${nf.format(tot.pendiente)}</td></tr><tr><td>hs restantes</td><td><input type="number" step=".25" data-hucfg="hours" data-site="${site}" value="${cfg.hours}"></td></tr><tr><td>pza x hs neces</td><td>${nf.format(Math.round(pph))}</td></tr><tr><td>usar HU neces</td><td class="hu-need">${nf.format(need)}</td></tr><tr><td>cant. Real</td><td>${nf.format(active)}</td></tr><tr><td>prod x hs</td><td><input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></td></tr><tr><td>producción real/h</td><td>${nf.format(realProd)}</td></tr><tr><td>capacidad restante</td><td>${nf.format(Math.round(capacity))}</td></tr></table>
+        </div>
+        <h3>Bipeo HU por hora</h3>${huHourlyTable(t)}
+      </div>
+    </div>
+    <div class="hu-bottom-grid">
+      <div><h3>Auditoría CPT · objetivo ${pf.format(cfg.cptObjective)}%</h3><div class="hu-scroll"><table class="hu-table compact"><tr><th>CPT</th><th>Avance</th><th>Pendiente</th><th>Estado</th></tr>${rows.map(x=>{const a=huPct(x),ok=a>=cfg.cptObjective;return `<tr><td>${x.cpt}</td><td>${pf.format(a)}%</td><td>${nf.format(x.pendiente)}</td><td><span class="hu-pill ${ok?'hu-good':a>=95?'hu-warn':'hu-bad'}">${ok?'CUMPLE':'PENDIENTE'}</span></td></tr>`}).join('')}</table></div><div class="hu-note">${bad.length?bad.length+' CPT debajo del objetivo final':'Todos los CPT cumplen el objetivo final'}.</div></div>
+      <div><h3>Productividad HU · Top usuarios</h3><div class="hu-scroll">${huProductivity(t)}</div></div>
+    </div>
+  </section>`;
+}
+function bindHuControls(){
+  document.querySelectorAll('[data-hucfg]').forEach(el=>el.onchange=()=>{const site=el.dataset.site,k=el.dataset.hucfg;huConfig(site)[k]=Number(el.value);huControl()});
+}
+function huControl(){
+  let h='';
+  for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(t?.hu)h+=huDashboard(site,t)}
+  $('huView').innerHTML=h||'<div class="card empty">Procesá un TMS para ver el Control HU.</div>';
+  bindHuControls();
+}
+
 async function initMasters(){const[s,e]=await Promise.all([fetch('./js/config/masterS.json').then(r=>r.json()),fetch('./js/config/masterE.json').then(r=>r.json())]);state.defaults={masterS:s,masterE:e};masters.soldati=JSON.parse(localStorage.getItem('inhubMasterS')||'null')||s;masters.echeverria=JSON.parse(localStorage.getItem('inhubMasterE')||'null')||e;masterUI()}
 function masterUI(){let h='';for(const site of ['soldati','echeverria'])h+=`<div class="card"><h3>${names[site]}</h3><div class="master-actions"><button class="smallbtn primary" data-add="${site}">+ Agregar</button><button class="smallbtn ghost" data-reset="${site}">Restaurar</button></div><div class="scroll"><table><tr><th>SubCA</th><th>Ola</th><th>CPT</th><th>Indicador</th><th></th></tr>${masters[site].map((x,i)=>`<tr><td><input data-site="${site}" data-i="${i}" data-f="subca" value="${esc(x.subca)}"></td><td><input data-site="${site}" data-i="${i}" data-f="ola" value="${esc(x.ola)}"></td><td><input type="number" data-site="${site}" data-i="${i}" data-f="cpt" value="${x.cpt}"></td><td><select data-site="${site}" data-i="${i}" data-f="indicador"><option ${x.indicador==='prioritario'?'selected':''}>prioritario</option><option ${x.indicador==='standard'?'selected':''}>standard</option></select></td><td><button class="smallbtn danger" data-del="${site}" data-i="${i}">X</button></td></tr>`).join('')}</table></div></div>`; $('configView').innerHTML=h;document.querySelectorAll('[data-f]').forEach(el=>el.onchange=()=>{const s=el.dataset.site,i=+el.dataset.i,f=el.dataset.f;masters[s][i][f]=f==='cpt'?Number(el.value):el.value.trim();save(s);subca()});document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{masters[b.dataset.del].splice(+b.dataset.i,1);save(b.dataset.del);masterUI();subca()});document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{masters[b.dataset.add].push({subca:'NUEVA',ola:'',cpt:0,indicador:'prioritario'});save(b.dataset.add);masterUI()});document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>{masters[b.dataset.reset]=structuredClone(b.dataset.reset==='soldati'?state.defaults.masterS:state.defaults.masterE);save(b.dataset.reset);masterUI();subca()})}
 function save(site){localStorage.setItem(site==='soldati'?'inhubMasterS':'inhubMasterE',JSON.stringify(masters[site]))}
