@@ -299,8 +299,8 @@ function huDetailRows(site,t){
   const activeBySub=new Map();
   for(const a of t.hu?.activeUsers||[]){
     const k=String(a.subca||'SIN SUBCA');
-    if(!activeBySub.has(k))activeBySub.set(k,new Set());
-    activeBySub.get(k).add(a.user);
+    if(!activeBySub.has(k))activeBySub.set(k,new Map());
+    const m=activeBySub.get(k),prev=m.get(a.user);if(!prev||a.last>prev.last)m.set(a.user,{user:a.user,last:a.last});
   }
   return (t.hu?.subca||[]).map(g=>{
     const cfg=mp.get(String(g.subca).toLowerCase())||{};
@@ -312,6 +312,7 @@ function huDetailRows(site,t){
       ola:cfg.ola||'',
       cpt:cfg.cpt??'SIN CONFIG',
       indicador:cfg.indicador||'',
+      userList:[...(activeBySub.get(String(g.subca))?.values()||[])].sort((a,b)=>String(a.user).localeCompare(String(b.user),'es')),
       users:activeBySub.get(String(g.subca))?.size||0,
       avance:g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0
     };
@@ -321,12 +322,28 @@ function huCptTracking(site,t){
   const rows=huDetailRows(site,t),groups=new Map();
   for(const r of rows){
     const k=String(r.cpt);
-    if(!groups.has(k))groups.set(k,{cpt:r.cpt,etiquetado:0,abierto:0,cerrado:0,pendiente:0,finalizado:0,enDespacho:0,despachado:0,users:0,subcas:[]});
+    if(!groups.has(k))groups.set(k,{cpt:r.cpt,etiquetado:0,abierto:0,cerrado:0,pendiente:0,finalizado:0,enDespacho:0,despachado:0,userMap:new Map(),users:0,subcas:[]});
     const g=groups.get(k);
-    g.etiquetado+=r.etiquetado;g.abierto+=r.abierto;g.cerrado+=r.cerrado;g.pendiente+=r.pendiente;g.finalizado+=r.finalizado;g.enDespacho+=r.enDespacho;g.despachado+=r.despachado;g.users+=r.users;g.subcas.push(r);
+    g.etiquetado+=r.etiquetado;g.abierto+=r.abierto;g.cerrado+=r.cerrado;g.pendiente+=r.pendiente;g.finalizado+=r.finalizado;g.enDespacho+=r.enDespacho;g.despachado+=r.despachado;for(const u of r.userList||[]){const p=g.userMap.get(u.user);if(!p||u.last>p.last)g.userMap.set(u.user,u)}g.users=g.userMap.size;g.subcas.push(r);
   }
-  return [...groups.values()].map(g=>({...g,avance:g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0}))
+  return [...groups.values()].map(g=>({...g,userList:[...g.userMap.values()].sort((a,b)=>String(a.user).localeCompare(String(b.user),'es')),avance:g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0}))
     .sort((a,b)=>String(a.cpt).localeCompare(String(b.cpt),'es',{numeric:true}));
+}
+function huUserButton(list,label){
+  const n=list?.length||0;if(!n)return '<span class="user-zero">0</span>';
+  const payload=encodeURIComponent(JSON.stringify(list.map(x=>({user:x.user,last:x.last}))));
+  return `<button type="button" class="user-link" data-user-list="${payload}" data-user-label="${esc(label)}">${nf.format(n)}</button>`;
+}
+function bindHuUserClicks(){
+  document.querySelectorAll('[data-user-list]').forEach(btn=>btn.onclick=e=>{
+    e.preventDefault();e.stopPropagation();
+    let list=[];try{list=JSON.parse(decodeURIComponent(btn.dataset.userList||''))}catch{}
+    const rows=list.map(x=>`<tr><td>${esc(x.user)}</td><td>${x.last?new Date(x.last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-'}</td></tr>`).join('');
+    const modal=document.createElement('div');modal.className='user-modal';
+    modal.innerHTML=`<div class="user-modal-card"><div class="user-modal-head"><div><h3>${esc(btn.dataset.userLabel||'Usuarios conectados')}</h3><small>${nf.format(list.length)} usuarios activos · ventana de 10 minutos</small></div><button type="button" class="user-close">×</button></div><div class="user-modal-body"><table class="hu-table compact"><tr><th>Usuario</th><th>Última actividad</th></tr>${rows||'<tr><td colspan="2">Sin usuarios activos.</td></tr>'}</table></div></div>`;
+    document.body.appendChild(modal);
+    const close=()=>modal.remove();modal.querySelector('.user-close').onclick=close;modal.onclick=ev=>{if(ev.target===modal)close()};document.addEventListener('keydown',function escClose(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',escClose)}});
+  });
 }
 function huTrackingTable(site,t){
   const groups=huCptTracking(site,t);
@@ -338,7 +355,7 @@ function huTrackingTable(site,t){
         <span>${g.subcas.length} SubCA</span>
         <span>${nf.format(g.etiquetado)} piezas</span>
         <span>${pf.format(g.avance)}% avance</span>
-        <span>${nf.format(g.users)} conectados</span>
+        <span>${huUserButton(g.userList,'CPT '+g.cpt+' · usuarios conectados')}</span>
         <span>${nf.format(g.finalizado)} fin. · ${nf.format(g.enDespacho)} desp. · ${nf.format(g.despachado)} sal.</span>
         <span class="hu-pill ${huTone(g.avance,99.5)}">${nf.format(g.pendiente)} pend.</span>
       </summary>
@@ -349,7 +366,7 @@ function huTrackingTable(site,t){
           <td>${nf.format(r.etiquetado)}</td><td>${nf.format(r.abierto)}</td><td>${nf.format(r.cerrado)}</td>
           <td class="hu-pend">${nf.format(r.pendiente)}</td>
           <td><span class="hu-pill ${huTone(r.avance,99.5)}">${pf.format(r.avance)}%</span></td>
-          <td>${nf.format(r.users)}</td><td>${nf.format(r.finalizado)}</td><td>${nf.format(r.enDespacho)}</td><td>${nf.format(r.despachado)}</td>
+          <td>${huUserButton(r.userList,r.subca+' · usuarios conectados')}</td><td>${nf.format(r.finalizado)}</td><td>${nf.format(r.enDespacho)}</td><td>${nf.format(r.despachado)}</td>
         </tr>`).join('')}
       </table></div>
     </details>`).join('')}</div>`;
@@ -359,6 +376,7 @@ function huControl(){
   for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(t?.hu)h+=huDashboard(site,t)}
   $('huView').innerHTML=h||'<div class="card empty">Procesá un TMS para ver el Control HU.</div>';
   bindHuControls();
+  bindHuUserClicks();
 }
 
 async function initMasters(){const[s,e]=await Promise.all([fetch('./js/config/masterS.json').then(r=>r.json()),fetch('./js/config/masterE.json').then(r=>r.json())]);state.defaults={masterS:s,masterE:e};masters.soldati=JSON.parse(localStorage.getItem('inhubMasterS')||'null')||s;masters.echeverria=JSON.parse(localStorage.getItem('inhubMasterE')||'null')||e;masterUI()}
