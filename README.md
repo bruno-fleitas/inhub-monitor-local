@@ -59,3 +59,14 @@ inhub-monitor-local/
 ## Regla de migración
 
 Cada cálculo migrado debe compararse contra el monitor actual antes de considerarse terminado.
+
+
+## Inicio rapido en Windows
+
+1. Descargar el repositorio como ZIP y descomprimirlo.
+2. Hacer doble clic en `ABRIR_MONITOR.bat`.
+3. El navegador se abre automaticamente en una direccion local (`127.0.0.1`).
+4. Mantener abierta la ventana negra mientras se usa el monitor.
+5. Para cerrar el monitor, cerrar esa ventana.
+
+No requiere Python. Usa PowerShell, incluido normalmente en Windows.
