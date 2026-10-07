@@ -189,3 +189,13 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 9px;b
 .jor-detail-head b{font-size:18px}.jor-detail-head small{display:block;margin-top:3px;color:#66758a}
 .jor-close{border:0;background:#edf3f9;border-radius:8px;width:34px;height:34px;font-size:24px;cursor:pointer;color:#173b65}
 .jor-table-wrap{overflow:auto;padding:0 14px 16px}.jor-table-wrap table{min-width:900px;width:100%}
+
+
+/* Arribado Registros vs Ingresado TMS */
+.flow-curve{margin:12px 0 18px;padding:14px;border:1px solid #d7e3ef;border-radius:12px;background:#fbfdff}
+.flow-title{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.flow-title h3{margin:0}.flow-title small{color:#68788d}
+.flow-legend{display:flex;gap:14px;font-size:12px;font-weight:800}.flow-arr{color:#1772bd}.flow-in{color:#18865f}
+.flow-chart{margin-top:12px}.flow-chart svg{display:block;width:100%;height:230px;overflow:visible;background:linear-gradient(#fff,#f7fafc);border:1px solid #e2e9f0;border-radius:8px}
+.flow-chart .axis{stroke:#aebdcb;stroke-width:.35}.flow-chart polyline{fill:none;stroke-width:1.2;vector-effect:non-scaling-stroke}.line-arr{stroke:#1772bd}.line-in{stroke:#18865f}
+.flow-values{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:3px;margin:6px 0 12px}.flow-values div{text-align:center;font-size:9px}.flow-values b,.flow-values span{display:block}.flow-values span:nth-child(2){color:#1772bd;font-weight:800}.flow-values span:nth-child(3){color:#18865f;font-weight:800}
+@media(max-width:900px){.flow-title{flex-direction:column}.flow-chart{overflow-x:auto}.flow-chart svg{min-width:850px}.flow-values{min-width:850px}}
