@@ -176,3 +176,16 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 9px;b
 .hu-pill.hu-good{background:#daf5e8;color:#137333;border-color:#9bd9bb}
 .hu-pill.hu-bad{background:#fde7e7;color:#b42318;border-color:#f2b6b6}
 @media(max-width:900px){.dot-panel .hu-section-title{align-items:stretch;flex-direction:column}.dot-panel .hu-section-title label{width:100%}}
+
+
+/* Jornales detail */
+.jor-kpi{font:inherit;text-align:left;cursor:pointer;width:100%;color:inherit;background:inherit}
+.jor-kpi:hover{transform:translateY(-2px);border-color:#1772bd;box-shadow:0 8px 22px rgba(17,65,110,.10)}
+.jor-kpi em{display:block;margin-top:8px;font-size:10px;font-style:normal;font-weight:800;color:#1772bd}
+.jor-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(7,20,38,.58);padding:4vh 3vw;align-items:center;justify-content:center}
+.jor-modal.open{display:flex}
+.jor-modal-box{width:min(1250px,96vw);max-height:92vh;overflow:hidden;background:#fff;border-radius:14px;box-shadow:0 24px 70px rgba(0,0,0,.25);display:flex;flex-direction:column}
+.jor-detail-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #dbe5f0;color:#102b4e}
+.jor-detail-head b{font-size:18px}.jor-detail-head small{display:block;margin-top:3px;color:#66758a}
+.jor-close{border:0;background:#edf3f9;border-radius:8px;width:34px;height:34px;font-size:24px;cursor:pointer;color:#173b65}
+.jor-table-wrap{overflow:auto;padding:0 14px 16px}.jor-table-wrap table{min-width:900px;width:100%}
