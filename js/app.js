@@ -126,7 +126,7 @@ function flowCurve(d,start){
 function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros)continue;h+=`<article class="card"><h2>${names[site]}</h2>${flowCurve(d,start)}<div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3>${tmsTable(d.tms,start)}<h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
 function mix(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(!t)continue;const pure=Math.max(0,t.vol-t.big-t.sb),base=Math.max(0,t.totalConPost-t.big-t.sb);h+=`<article class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div></div>${tmsTable(t,start)}</article>`} $('mixView').innerHTML=h||'<article class="card empty">Sin TMS.</article>'}
 
-function cfg(site){const t=state.sites[site].tms;if(!t)return null;const mp=new Map(masters[site].map(x=>[String(x.subca).toLowerCase(),x]));const groups=t.subcaGroups.map(g=>{const x=mp.get(String(g.subca).toLowerCase());return{...g,ola:x?.ola||'',cpt:x?.cpt??'',indicador:x?.indicador||''}});return{total:t.totalConPost,groups,unknown:groups.filter(g=>g.subca!=='SIN SUBCA'&&!mp.has(String(g.subca).toLowerCase()))}}
+function cfg(site){const t=state.sites[site].tms;if(!t)return null;const mp=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));const groups=t.subcaGroups.map(g=>{const x=mp.get(String(g.subca).trim().toUpperCase());return{...g,ola:x?.ola||'',cpt:x?.cpt??'',indicador:x?.indicador||''}});return{total:t.totalConPost,groups,unknown:groups.filter(g=>g.subca!=='SIN SUBCA'&&!mp.has(String(g.subca).trim().toUpperCase()))}}
 function cpts(s){const m=new Map();for(const g of s.groups){const k=g.cpt===''?'SIN CONFIG':String(g.cpt);if(!m.has(k))m.set(k,{cpt:k,total:0,vol:0,big:0,sb:0,subcas:new Set()});const x=m.get(k);x.total+=g.total;x.vol+=g.vol;x.big+=g.big;x.sb+=g.sb;x.subcas.add(g.subca)}return[...m.values()]}
 function uniq(a){return [...new Set(a.filter(x=>x!==''&&x!=null))].sort((a,b)=>String(a).localeCompare(String(b),'es',{numeric:true}))}
 function optionList(values,current){return '<option value="__ALL__">Todos</option>'+values.map(v=>`<option value="${esc(v)}" ${String(v)===String(current)?'selected':''}>${esc(v)}</option>`).join('')}
@@ -195,15 +195,15 @@ function huConfig(site){
   return state.config.hu[site];
 }
 function huCptRows(site,t){
-  const mp=new Map(masters[site].map(x=>[String(x.subca).toLowerCase(),x]));
+  const mp=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));
   const m=new Map();
   for(const g of t.hu?.subca||[]){
-    const cfg=mp.get(String(g.subca).toLowerCase()),cpt=cfg?.cpt??'SIN CONFIG';
+    const cfg=mp.get(String(g.subca).trim().toUpperCase()),cpt=cfg?.cpt??'SIN CONFIG';
     if(!m.has(String(cpt)))m.set(String(cpt),{cpt,etiquetado:0,abierto:0,cerrado:0,pendiente:0,subcas:0,users:new Set()});
     const x=m.get(String(cpt));x.etiquetado+=g.etiquetado;x.abierto+=g.abierto;x.cerrado+=g.cerrado;x.pendiente+=g.pendiente;x.subcas++;
   }
   for(const a of huActiveUsers(site,t)){
-    const cfg=mp.get(String(a.subca).toLowerCase()),cpt=cfg?.cpt??'SIN CONFIG';
+    const cfg=mp.get(String(a.subca).trim().toUpperCase()),cpt=cfg?.cpt??'SIN CONFIG';
     const x=m.get(String(cpt)); if(x)x.users.add(a.user);
   }
   return [...m.values()].sort((a,b)=>String(a.cpt).localeCompare(String(b.cpt),'es',{numeric:true}));
@@ -307,7 +307,7 @@ function bindHuControls(){
 }
 
 function huDetailRows(site,t){
-  const mp=new Map(masters[site].map(x=>[String(x.subca).toLowerCase(),x]));
+  const mp=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));
   const activeBySub=new Map();
   for(const a of huActiveUsers(site,t)){
     const k=String(a.subca||'SIN SUBCA');
@@ -315,7 +315,7 @@ function huDetailRows(site,t){
     const m=activeBySub.get(k),prev=m.get(a.user);if(!prev||a.last>prev.last)m.set(a.user,{user:a.user,last:a.last});
   }
   return (t.hu?.subca||[]).map(g=>{
-    const cfg=mp.get(String(g.subca).toLowerCase())||{};
+    const cfg=mp.get(String(g.subca).trim().toUpperCase())||{};
     return {
       ...g,
       finalizado:g.finalizado||0,
@@ -390,9 +390,9 @@ function cptDeadline(day,cpt){
  const x=new Date(y,m-1,d,h,0,0,0);if(h<12)x.setDate(x.getDate()+1);return x.getTime();
 }
 function dotData(site,t){
- const master=new Map(masters[site].map(x=>[String(x.subca).toLowerCase(),x])),now=t.hu?.maxOutTs||t.maxInTs||Date.now(),obj=dotTarget(site).objective,groups=new Map();
+ const master=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x])),now=t.hu?.maxOutTs||t.maxInTs||Date.now(),obj=dotTarget(site).objective,groups=new Map();
  for(const r of t.dotRows||[]){
-  const cfg=master.get(String(r.subca).toLowerCase());if(!cfg)continue;
+  const cfg=master.get(String(r.subca).trim().toUpperCase());if(!cfg)continue;
   const deadline=cptDeadline(state.config.analysisDate,cfg.cpt);if(deadline==null)continue;
   const k=String(cfg.cpt)+'|'+r.subca;if(!groups.has(k))groups.set(k,{cpt:cfg.cpt,subca:r.subca,total:0,onTime:0,delay:0,deviation:0,pending:0,deadline});
   const g=groups.get(k);g.total++;
@@ -420,7 +420,7 @@ function huControl(){
   bindDotControls();
 }
 
-async function initMasters(){const[s,e]=await Promise.all([fetch('./js/config/masterS.json').then(r=>r.json()),fetch('./js/config/masterE.json').then(r=>r.json())]);state.defaults={masterS:s,masterE:e};masters.soldati=JSON.parse(localStorage.getItem('inhubMasterS')||'null')||s;masters.echeverria=JSON.parse(localStorage.getItem('inhubMasterE')||'null')||e;masterUI()}
+async function initMasters(){const[s,e]=await Promise.all([fetch('./js/config/masterS.json').then(r=>r.json()),fetch('./js/config/masterE.json').then(r=>r.json())]);state.defaults={masterS:s,masterE:e};const masterVersion='2026-10-27-v2';if(localStorage.getItem('inhubMasterVersion')!==masterVersion){localStorage.removeItem('inhubMasterS');localStorage.removeItem('inhubMasterE');localStorage.setItem('inhubMasterVersion',masterVersion)}masters.soldati=JSON.parse(localStorage.getItem('inhubMasterS')||'null')||s;masters.echeverria=JSON.parse(localStorage.getItem('inhubMasterE')||'null')||e;masterUI()}
 function masterUI(){let h='';for(const site of ['soldati','echeverria'])h+=`<div class="card"><h3>${names[site]}</h3><div class="master-actions"><button class="smallbtn primary" data-add="${site}">+ Agregar</button><button class="smallbtn ghost" data-reset="${site}">Restaurar</button></div><div class="scroll"><table><tr><th>SubCA</th><th>Ola</th><th>CPT</th><th>Indicador</th><th></th></tr>${masters[site].map((x,i)=>`<tr><td><input data-site="${site}" data-i="${i}" data-f="subca" value="${esc(x.subca)}"></td><td><input data-site="${site}" data-i="${i}" data-f="ola" value="${esc(x.ola)}"></td><td><input type="number" data-site="${site}" data-i="${i}" data-f="cpt" value="${x.cpt}"></td><td><select data-site="${site}" data-i="${i}" data-f="indicador"><option ${x.indicador==='prioritario'?'selected':''}>prioritario</option><option ${x.indicador==='standard'?'selected':''}>standard</option></select></td><td><button class="smallbtn danger" data-del="${site}" data-i="${i}">X</button></td></tr>`).join('')}</table></div></div>`; $('configView').innerHTML=h;document.querySelectorAll('[data-f]').forEach(el=>el.onchange=()=>{const s=el.dataset.site,i=+el.dataset.i,f=el.dataset.f;masters[s][i][f]=f==='cpt'?Number(el.value):el.value.trim();save(s);subca()});document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{masters[b.dataset.del].splice(+b.dataset.i,1);save(b.dataset.del);masterUI();subca()});document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{masters[b.dataset.add].push({subca:'NUEVA',ola:'',cpt:0,indicador:'prioritario'});save(b.dataset.add);masterUI()});document.querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>{masters[b.dataset.reset]=structuredClone(b.dataset.reset==='soldati'?state.defaults.masterS:state.defaults.masterE);save(b.dataset.reset);masterUI();subca()})}
 function save(site){localStorage.setItem(site==='soldati'?'inhubMasterS':'inhubMasterE',JSON.stringify(masters[site]))}
 
