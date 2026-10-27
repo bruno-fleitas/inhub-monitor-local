@@ -296,3 +296,17 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .hu-air-panel .hu-table .user-link{display:inline-flex;align-items:center;justify-content:center}
 @media(max-width:1000px){.hu-air-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:550px){.hu-air-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hu-air-panel{padding:10px}.hu-air-panel .hu-table th,.hu-air-panel .hu-table td{padding:7px 4px;font-size:11px}}
+
+/* Screenshot-ready Control HU: show every CPT and compact MELI Air above CPT table */
+.hu-dashboard .hu-cpt-full{max-height:none!important;height:auto!important;overflow:visible!important}
+.hu-dashboard .hu-cpt-full .hu-table{font-size:11px}
+.hu-dashboard .hu-cpt-full .hu-table th,.hu-dashboard .hu-cpt-full .hu-table td{padding:5px 5px!important;line-height:1.2}
+.hu-dashboard .hu-left>.hu-air-panel{margin:10px 0 12px;padding:9px 10px}
+.hu-dashboard .hu-left>.hu-air-panel>h3{font-size:14px;margin-bottom:7px}
+.hu-dashboard .hu-left>.hu-air-panel .hu-air-grid{gap:5px;margin-bottom:7px}
+.hu-dashboard .hu-left>.hu-air-panel .hu-air-grid>div{min-height:49px;padding:5px 3px;gap:3px}
+.hu-dashboard .hu-left>.hu-air-panel .hu-air-grid small{font-size:9px}
+.hu-dashboard .hu-left>.hu-air-panel .hu-air-grid b{font-size:15px}
+.hu-dashboard .hu-left>.hu-air-panel .hu-scroll{max-height:none;overflow:visible}
+.hu-dashboard .hu-left>.hu-air-panel .hu-table th,.hu-dashboard .hu-left>.hu-air-panel .hu-table td{padding:4px 3px;font-size:10px}
+.hu-dashboard .hu-status-strip small{display:block;font-size:9px;margin-top:3px}
