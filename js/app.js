@@ -286,10 +286,11 @@ function huSeparateAir(t){
  const normal=split(false),meli=split(true);
  return {normal:{...t,hu:{...t.hu,subca:normal,totals:total(normal),userActivity:(t.hu.userActivity||[]).filter(x=>!air(x))}},meli:{...t,hu:{...t.hu,subca:meli,totals:total(meli),userActivity:(t.hu.userActivity||[]).filter(air)} }};
 }
-function huAirPanel(site,t){
+function huAirPanel(site,t,detailMode=false){
  const x=huSeparateAir(t).meli,tot=x.hu.totals,progress=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
  const airUsers=[...new Map(huActiveUsers(site,x).map(u=>[u.user,{user:u.user,last:u.last}])).values()];
- return `<section class="hu-air-panel"><h3>MELI AIR · Control HU independiente</h3><div class="hu-air-grid"><div><small>Ingresos / etiquetado</small><b>${nf.format(tot.etiquetado)}</b></div><div><small>HU abierto</small><b>${nf.format(tot.abierto)}</b></div><div><small>HU cerrado</small><b>${nf.format(tot.cerrado)}</b></div><div><small>Pendientes</small><b>${nf.format(tot.pendiente)}</b></div><div><small>Avance</small><b>${pf.format(progress)}%</b></div><div><small>Conectados</small><b>${huUserButton(airUsers,'MELI Air · conectados')}</b></div></div><div class="hu-scroll"><table class="hu-table"><tr><th>SubCA</th><th>Etiquetado</th><th>Abierto</th><th>Cerrado</th><th>Pendiente</th><th>Avance</th><th>Conectados</th></tr>${x.hu.subca.map(g=>`<tr><td>${esc(g.subca)}</td><td>${nf.format(g.etiquetado)}</td><td>${nf.format(g.abierto)}</td><td>${nf.format(g.cerrado)}</td><td>${nf.format(g.pendiente)}</td><td>${pf.format(g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0)}%</td><td>${huUserButton(airUsers.filter(u=>huActiveUsers(site,x).some(a=>a.user===u.user&&String(a.subca).toUpperCase()===String(g.subca).toUpperCase())),g.subca+' · conectados')}</td></tr>`).join('')}</table></div></section>`;
+ if(!detailMode)return `<section class="hu-air-compact"><h3>Armado de HU · MELI Air</h3><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr><tr class="hu-air-row"><td>00:00</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td><span class="hu-pill ${huTone(progress,huConfig(site).objective)}">${pf.format(progress)}%</span></td><td>${huUserButton(airUsers,'MELI Air · conectados')}</td></tr></table></section>`;
+ return `<section class="hu-air-panel"><h3>MELI AIR · Detalle por SubCA</h3><div class="hu-scroll"><table class="hu-table"><tr><th>SubCA</th><th>Etiquetado</th><th>Abierto</th><th>Cerrado</th><th>Pendiente</th><th>Avance</th><th>Conectados</th></tr>${x.hu.subca.map(g=>`<tr><td>${esc(g.subca)}</td><td>${nf.format(g.etiquetado)}</td><td>${nf.format(g.abierto)}</td><td>${nf.format(g.cerrado)}</td><td>${nf.format(g.pendiente)}</td><td>${pf.format(g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0)}%</td><td>${huUserButton(airUsers.filter(u=>huActiveUsers(site,x).some(a=>a.user===u.user&&String(a.subca).toUpperCase()===String(g.subca).toUpperCase())),g.subca+' · conectados')}</td></tr>`).join('')}</table></div></section>`;
 }
 function huDashboard(site,originalT){
   const t=huSeparateAir(originalT).normal;
@@ -324,7 +325,7 @@ function huDashboard(site,originalT){
           <table class="hu-summary"><tr><td>TOTAL Piezas</td><td>${nf.format(tot.etiquetado)}</td></tr><tr><td>Piezas con HU Abierto</td><td>${nf.format(tot.abierto)}</td></tr><tr><td>Piezas HU Cerrado</td><td>${nf.format(tot.cerrado)}</td></tr><tr><td>Piezas Pendientes de HU</td><td>${nf.format(tot.pendiente)}</td></tr></table>
           <div class="hu-big ${huTone(avance,cfg.objective)}">${pf.format(avance)}%</div>
         </div>
-        ${huAirPanel(site,originalT)}
+        ${huAirPanel(site,originalT,false)}
         <div class="hu-titlebar">CONTROL - CPT / XD</div>
         <h3>Armado de HU · General (sin MELI Air)</h3>
         <div class="hu-scroll hu-cpt-full"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr>
@@ -350,6 +351,7 @@ function huDashboard(site,originalT){
         <h3>Bipeo HU por hora</h3>${huHourlyTable(t)}
       </div>
     </div>
+    ${huAirPanel(site,originalT,true)}
     <div class="hu-tracking-block"><h3>Seguimiento por CPT y SubCA</h3><div class="hu-note">Avance, pendientes y conectados activos por cada SubCA dentro de su CPT.</div>${huTrackingTable(site,t)}</div>
     ${dotMonitor(site,originalT)}
     <div class="hu-bottom-grid">
