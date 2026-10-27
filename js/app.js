@@ -49,7 +49,7 @@ function speedPanel(site){
   const diff=arrived-bipeado,pend=fc?fc-bipeado:0;
   const last=lastTs?new Date(lastTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-';
   return `<div class="speed-panel">
-    <div class="speed-head"><h3>Velocidad Inhub / Descarga</h3><label>Corte de análisis (opcional)<input type="time" data-hucutoff="${site}" value="${cfg.huCutoff||''}"></label><button class="smallbtn primary" data-cutapply="${site}">Aplicar corte</button><button class="smallbtn" data-cutclear="${site}">Limpiar corte</button><label>Hora objetivo<input type="time" data-speed-target="${site}" value="${target}"></label></div>
+    <div class="speed-head"><h3>Velocidad Inhub / Descarga</h3><label>Hora objetivo<input type="time" data-speed-target="${site}" value="${target}"></label></div>
     <table class="speed-table">
       <tr><td>Últ. actualización</td><td>${last}</td><td></td></tr>
       <tr><td>Proyectado</td><td>${fc?nf.format(fc):'-'}</td><td>${fc?'100,0%':'-'}</td></tr>
@@ -302,7 +302,7 @@ function huDashboard(site,originalT){
   return `<section class="hu-dashboard" data-hu-site="${site}">
     <div class="hu-head">
       <div><span class="hu-brand">OCASA</span><h2>${names[site]} · Control HU</h2><small>Última actualización HU <b>${update}</b> · conectados = actividad dentro de los últimos ${cfg.activeMinutes} min</small></div>
-      <div class="hu-head-actions"><label>Inicio Inhub TMS (HU)<select data-hustart="${site}">${Array.from({length:24},(_,i)=>`<option value="${i}" ${i===(cfg.huStartHour??7)?'selected':''}>${String(i).padStart(2,'0')}:00</option>`).join('')}</select></label><button class="smallbtn primary" data-huapply="${site}">Aplicar horario</button>
+      <div class="hu-head-actions"><label>Corte de análisis (opcional)<input type="time" data-hucutoff="${site}" value="${cfg.huCutoff||''}"></label><button class="smallbtn primary" data-cutapply="${site}">Aplicar corte</button><button class="smallbtn" data-cutclear="${site}">Limpiar corte</button><label>Inicio Inhub TMS (HU)<select data-hustart="${site}">${Array.from({length:24},(_,i)=>`<option value="${i}" ${i===(cfg.huStartHour??7)?'selected':''}>${String(i).padStart(2,'0')}:00</option>`).join('')}</select></label><button class="smallbtn primary" data-huapply="${site}">Aplicar horario</button>
         <label>Hora objetivo<input type="time" data-hucfg="targetTime" data-site="${site}" value="${cfg.targetTime}"></label>
         <label>Prod. objetivo pza/h<input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></label>
         <label>Verde desde %<input type="number" min="0" max="100" step="0.1" data-hucfg="objective" data-site="${site}" value="${cfg.objective}"></label><label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label><label>Ventana conectados (min)<input type="number" min="1" max="120" step="1" data-hucfg="activeMinutes" data-site="${site}" value="${cfg.activeMinutes}"></label>
