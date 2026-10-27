@@ -19,7 +19,7 @@ for(const [id,site,type] of bindings)$(id).onchange=async e=>{const f=e.target.f
 function status(site){const id=site==='soldati'?'statusS':'statusE',a=Object.entries(state.sites[site].files).filter(([,f])=>f).map(([k,f])=>k+': '+f.name);$(id).textContent=a.length?a.join(' · '):'Sin archivos cargados.'}
 function progress(p,msg){$('progress').classList.remove('hidden');$('progressBar').style.width=Math.max(0,Math.min(100,p))+'%';$('message').textContent=msg}
 function onceWorker(url,payload,onp){return new Promise((res,rej)=>{const w=new Worker(url);w.onmessage=e=>{const m=e.data||{};if(m.type==='PROGRESS')onp?.(m.progress||0);if(m.type==='RESULT'){w.terminate();res(m.result)}if(m.type==='ERROR'){w.terminate();rej(new Error(m.message))}};w.onerror=e=>{w.terminate();rej(new Error(e.message||'Worker error'))};w.postMessage(payload)})}
-const runT=(site,onp)=>state.sites[site].files.tms?onceWorker('./workers/tms.worker.js',{type:'PROCESS_TMS',file:state.sites[site].files.tms,labFile:state.sites[site].files.labelless||null,config:{selectedDate:state.config.analysisDate,cptStart:state.config.cptStart[site],huStartHour:huConfig(site).huStartHour??7}},onp):Promise.resolve(null);
+const runT=(site,onp)=>state.sites[site].files.tms?onceWorker('./workers/tms.worker.js',{type:'PROCESS_TMS',file:state.sites[site].files.tms,labFile:state.sites[site].files.labelless||null,config:{selectedDate:state.config.analysisDate,cptStart:state.config.cptStart[site],huStartHour:huConfig(site).huStartHour??7,huCutoff:huConfig(site).huCutoff||null}},onp):Promise.resolve(null);
 const runA=(site,onp)=>state.sites[site].files.arrivals?onceWorker('./workers/arrivals.worker.js',{type:'PROCESS_ARRIVALS',file:state.sites[site].files.arrivals,day:state.config.analysisDate},onp):Promise.resolve(null);
 const runR=(site,onp)=>state.sites[site].files.registros?onceWorker('./workers/registros.worker.js',{type:'PROCESS_REGISTROS',file:state.sites[site].files.registros,day:state.config.analysisDate},onp):Promise.resolve(null);
 const runL=(site,onp)=>state.sites[site].files.labelless?onceWorker('./workers/labelless.worker.js',{type:'PROCESS_LAB',file:state.sites[site].files.labelless},onp):Promise.resolve(null);
@@ -49,7 +49,7 @@ function speedPanel(site){
   const diff=arrived-bipeado,pend=fc?fc-bipeado:0;
   const last=lastTs?new Date(lastTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-';
   return `<div class="speed-panel">
-    <div class="speed-head"><h3>Velocidad Inhub / Descarga</h3><label>Hora objetivo<input type="time" data-speed-target="${site}" value="${target}"></label></div>
+    <div class="speed-head"><h3>Velocidad Inhub / Descarga</h3><label>Corte de análisis (opcional)<input type="time" data-hucutoff="${site}" value="${cfg.huCutoff||''}"></label><button class="smallbtn primary" data-cutapply="${site}">Aplicar corte</button><button class="smallbtn" data-cutclear="${site}">Limpiar corte</button><label>Hora objetivo<input type="time" data-speed-target="${site}" value="${target}"></label></div>
     <table class="speed-table">
       <tr><td>Últ. actualización</td><td>${last}</td><td></td></tr>
       <tr><td>Proyectado</td><td>${fc?nf.format(fc):'-'}</td><td>${fc?'100,0%':'-'}</td></tr>
@@ -234,7 +234,7 @@ function vehicleShareTable(a){
 
 function huConfig(site){
   state.config.hu ??= {};
-  state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00',activeMinutes:10,huStartHour:7};
+  state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00',activeMinutes:10,huStartHour:7,huCutoff:''};
   state.config.hu[site].objective ??= 80;
   return state.config.hu[site];
 }
@@ -308,7 +308,7 @@ function huDashboard(site,originalT){
         <label>Verde desde %<input type="number" min="0" max="100" step="0.1" data-hucfg="objective" data-site="${site}" value="${cfg.objective}"></label><label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label><label>Ventana conectados (min)<input type="number" min="1" max="120" step="1" data-hucfg="activeMinutes" data-site="${site}" value="${cfg.activeMinutes}"></label>
       </div>
     </div>
-    <div class="hu-status-strip">
+    ${cfg.huCutoff?`<p class="hu-cutoff-notice">Filtro Inhub hasta ${cfg.huCutoff} · los estados HU reflejan la descarga TMS cargada, no una reconstrucción histórica exacta.</p>`:''}<div class="hu-status-strip">
       <div><span>Última actualización</span><b>${update}</b></div>
       <div><span>Hora objetivo</span><b>${cfg.targetTime}</b></div>
       <div><span>Tiempo restante</span><b>${fmtDuration(hours)}</b></div>
@@ -475,6 +475,16 @@ function huControl(){
   $('huView').innerHTML=h||'<div class="card empty">Procesá un TMS para ver el Control HU.</div>';
   bindHuControls();
   document.querySelectorAll('[data-huapply]').forEach(b=>b.onclick=async()=>{const site=b.dataset.huapply,sel=document.querySelector(`[data-hustart="${site}"]`);if(!sel)return;huConfig(site).huStartHour=Number(sel.value);if(!state.sites[site].files.tms)return;const prev=b.textContent;b.disabled=true;b.textContent='Recalculando...';try{state.sites[site].tms=await runT(site);renderAll()}catch(e){alert('No se pudo recalcular el Control HU: '+e.message);b.disabled=false;b.textContent=prev}});
+  document.querySelectorAll('[data-cutapply],[data-cutclear]').forEach(b=>b.onclick=async()=>{
+    const site=b.dataset.cutapply||b.dataset.cutclear,clear=!!b.dataset.cutclear;
+    const input=document.querySelector(`[data-hucutoff="${site}"]`);
+    const next=clear?'':(input?.value||'');
+    if(!clear&&!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(next)){alert('Seleccioná una hora válida.');return}
+    huConfig(site).huCutoff=next;
+    b.disabled=true;b.textContent='Recalculando...';
+    try{state.sites[site].tms=await runT(site);renderAll()}
+    catch(e){alert('Error al aplicar corte: '+e.message);b.disabled=false;b.textContent=clear?'Limpiar corte':'Aplicar corte'}
+  });
   bindHuUserClicks();
   bindDotControls();
 }
