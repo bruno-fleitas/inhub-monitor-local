@@ -75,7 +75,35 @@ function tmsTable(t,start){let cv=0,ct=0,r='';for(let h=start;h<=23;h++){const x
 function arrTable(a,start){const u=universe(a,start);let cp=0,cv=0,r='';for(let h=start;h<=23;h++){cp+=a.h[h].ship;cv+=a.h[h].veh;r+=`<tr><td>${h}:00</td><td>${nf.format(a.h[h].ship)}</td><td>${nf.format(cp)}</td><td>${pf.format(pct(cp,u.packages))}%</td><td>${nf.format(a.h[h].veh)}</td><td>${nf.format(cv)}</td><td>${pf.format(pct(cv,u.vehicles))}%</td></tr>`}return `<div class="scroll"><table><tr><th>Hora</th><th>Paquetes</th><th>Paq. acum.</th><th>% paq.</th><th>Veh.</th><th>Veh. acum.</th><th>% veh.</th></tr>${r}</table></div>`}
 function bars(rows,key,start){const mx=Math.max(1,...rows.slice(start).map(x=>x[key]||0));return '<div class="chart">'+Array.from({length:24-start},(_,i)=>i+start).map(h=>`<div class="barrow"><span class="barlabel">${h}:00</span><div class="bartrack"><div class="barfill" style="width:${pct(rows[h][key]||0,mx)}%"></div></div><span class="barvalue">${nf.format(rows[h][key]||0)}</span></div>`).join('')+'</div>'}
 
-function renderAll(){summary();operation();huControl();curves();mix();subca();jornales();mail();reportPreview()}
+
+function dockDashboard(){
+ let html='';
+ for(const site of ['soldati','echeverria']){
+ const t=state.sites[site].tms;if(!t)continue;
+ const key='dockThreshold_'+site;
+ const threshold=Number(state.config[key]??40);
+ const docks=(t.docks||[]).map(x=>({...x,n:Number(x.dock),hours:(x.last-x.first)/3600000})).filter(x=>x.count>0);
+ const first=docks.length?Math.min(...docks.map(x=>x.first)):null,last=docks.length?Math.max(...docks.map(x=>x.last)):null;
+ const total=docks.reduce((n,x)=>n+x.count,0),hours=first===null?0:(last-first)/3600000;
+ const clock=ms=>new Date(ms).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+ const velocity=(n,h)=>h>0?nf.format(Math.round(n/h)):'—';
+ const tiles=(items)=>items.length?'<div class="dock-tiles">'+items.sort((a,b)=>a.n-b.n).map(x=>{
+ const users=Object.entries(x.users||{}).sort((a,b)=>b[1]-a[1]);
+ const tip=users.length?users.map(([u,n])=>u+' · '+nf.format(n)+' bipeos').join(' | '):'Sin usuario Inbound informado';
+ return `<div class="dock-tile" tabindex="0" title="${esc(tip)}"><div class="dock-num">DOCK ${esc(x.dock)}</div><strong>${velocity(x.count,x.hours)} <small>pza/h</small></strong><div class="dock-speed">${x.hours>0?pf.format(x.count/(x.hours*60)):'—'} pza/min</div><div class="dock-qty">${nf.format(x.count)} paquetes · ${users.length} usuarios</div><div class="dock-tooltip"><b>Usuarios en dársena</b>${users.length?users.map(([u,n])=>`<span>${esc(u)} · ${nf.format(n)} bipeos</span>`).join(''):'<span>Sin usuario Inbound informado</span>'}<span>Primer bipeo: ${clock(x.first)}</span><span>Último bipeo: ${clock(x.last)}</span></div></div>`;
+ }).join('')+'</div>':'<p class="muted">Sin docks registrados para esta categoría.</p>';
+ html+=`<article class="card"><h2>${names[site]} · Productividad por dársena</h2><div class="dock-toolbar"><label>Desde dock N.º se considera Camioneta <input class="dock-limit" data-dock-site="${site}" type="number" min="0" step="1" value="${threshold}"></label><small>Dock ${threshold} y superiores: Camionetas · inferiores: Chasis. Se configura por site.</small></div>
+ <div class="dock-summary"><div><span>Paquetes bipeados</span><b>${nf.format(total)}</b></div><div><span>Velocidad general / hora</span><b>${velocity(total,hours)}</b></div><div><span>Velocidad general / minuto</span><b>${hours>0?pf.format(total/(hours*60)):'—'}</b></div><div><span>Docks con actividad</span><b>${nf.format(docks.length)}</b></div><div><span>Primer / último bipeo</span><b>${first!==null?clock(first)+' / '+clock(last):'—'}</b></div></div>
+ <h3>Camionetas · ${docks.filter(x=>Number.isFinite(x.n)&&x.n>=threshold).length} docks</h3>${tiles(docks.filter(x=>Number.isFinite(x.n)&&x.n>=threshold))}
+ <h3>Chasis · ${docks.filter(x=>Number.isFinite(x.n)&&x.n<threshold).length} docks</h3>${tiles(docks.filter(x=>Number.isFinite(x.n)&&x.n<threshold))}
+ ${docks.some(x=>!Number.isFinite(x.n))?'<p class="muted">Existen docks con identificadores no numéricos que no se pueden clasificar por el umbral.</p>':''}
+ <p class="muted">Velocidades calculadas entre primer y último bipeo TMS, incluyendo pausas. La velocidad general usa el intervalo global; no es la suma de velocidades individuales. Los usuarios son los identificados en Inbound User ID, no necesariamente quienes están conectados ahora.</p></article>`;
+ }
+ $('docksView').innerHTML=html||'<article class="card empty">Procesá un TMS para visualizar las dársenas.</article>';
+ document.querySelectorAll('.dock-limit').forEach(el=>el.onchange=()=>{const n=Number(el.value);if(!Number.isFinite(n)||n<0)return;state.config['dockThreshold_'+el.dataset.dockSite]=n;dockDashboard()});
+}
+
+function renderAll(){summary();operation();huControl();curves();dockDashboard();mix();subca();jornales();mail();reportPreview()}
 function summary(){
   let h='<div class="summary-sites">',any=false;
   for(const site of ['soldati','echeverria']){
