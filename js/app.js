@@ -234,7 +234,7 @@ function vehicleShareTable(a){
 
 function huConfig(site){
   state.config.hu ??= {};
-  state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00',activeMinutes:10,huStartHour:7,huCutoff:''};
+  state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00',activeMinutes:10,huStartHour:7,huCutoff:'',connectedMode:'unique'};
   state.config.hu[site].objective ??= 80;
   return state.config.hu[site];
 }
@@ -294,7 +294,7 @@ function huDashboard(site,originalT){
   const t=huSeparateAir(originalT).normal;
   const cfg=huConfig(site),tot=t.hu?.totals||{etiquetado:0,abierto:0,cerrado:0,pendiente:0};
   const avance=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
-  const rows=huCptRows(site,t),active=new Set(huActiveUsers(site,t).map(x=>x.user)).size;
+  const rows=huCptRows(site,t),activeUsers=huActiveUsers(site,t),uniqueConnected=new Set(activeUsers.map(x=>x.user)).size,duplicateConnected=rows.reduce((sum,x)=>sum+x.users.size,0),active=cfg.connectedMode==='byCpt'?duplicateConnected:uniqueConnected;
   const hours=hoursToTarget(t.hu?.maxOutTs,cfg.targetTime),prod=Math.max(1,Number(cfg.prod)||190);
   const pph=hours>0?tot.pendiente/hours:0,need=hours>0?Math.ceil(pph/prod):0,realProd=active*prod,capacity=realProd*hours,gap=active-need;
   const bad=rows.filter(x=>huPct(x)<cfg.cptObjective);
@@ -305,14 +305,14 @@ function huDashboard(site,originalT){
       <div class="hu-head-actions"><label>Corte de análisis (opcional)<input type="time" data-hucutoff="${site}" value="${cfg.huCutoff||''}"></label><button class="smallbtn primary" data-cutapply="${site}">Aplicar corte</button><button class="smallbtn" data-cutclear="${site}">Limpiar corte</button><label>Inicio Inhub TMS (HU)<select data-hustart="${site}">${Array.from({length:24},(_,i)=>`<option value="${i}" ${i===(cfg.huStartHour??7)?'selected':''}>${String(i).padStart(2,'0')}:00</option>`).join('')}</select></label><button class="smallbtn primary" data-huapply="${site}">Aplicar horario</button>
         <label>Hora objetivo<input type="time" data-hucfg="targetTime" data-site="${site}" value="${cfg.targetTime}"></label>
         <label>Prod. objetivo pza/h<input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></label>
-        <label>Verde desde %<input type="number" min="0" max="100" step="0.1" data-hucfg="objective" data-site="${site}" value="${cfg.objective}"></label><label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label><label>Ventana conectados (min)<input type="number" min="1" max="120" step="1" data-hucfg="activeMinutes" data-site="${site}" value="${cfg.activeMinutes}"></label>
+        <label>Verde desde %<input type="number" min="0" max="100" step="0.1" data-hucfg="objective" data-site="${site}" value="${cfg.objective}"></label><label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label><label>Conteo conectados<select data-hucfg="connectedMode" data-site="${site}"><option value="unique" ${cfg.connectedMode!=='byCpt'?'selected':''}>Sin duplicados</option><option value="byCpt" ${cfg.connectedMode==='byCpt'?'selected':''}>Con duplicados (por CPT)</option></select></label><label>Ventana conectados (min)<input type="number" min="1" max="120" step="1" data-hucfg="activeMinutes" data-site="${site}" value="${cfg.activeMinutes}"></label>
       </div>
     </div>
     ${cfg.huCutoff?`<p class="hu-cutoff-notice">Filtro Inhub hasta ${cfg.huCutoff} · los estados HU reflejan la descarga TMS cargada, no una reconstrucción histórica exacta.</p>`:''}<div class="hu-status-strip">
       <div><span>Última actualización</span><b>${update}</b></div>
       <div><span>Hora objetivo</span><b>${cfg.targetTime}</b></div>
       <div><span>Tiempo restante</span><b>${fmtDuration(hours)}</b></div>
-      <div><span>Conectados reales</span><b>${nf.format(active)}</b></div>
+      <div><span>Conectados ${cfg.connectedMode==='byCpt'?'por CPT (con duplicados)':'únicos'}</span><b>${nf.format(active)}</b><small>Únicos: ${nf.format(uniqueConnected)} · Por CPT: ${nf.format(duplicateConnected)}</small></div>
       <div><span>Necesarios</span><b>${nf.format(need)}</b></div>
       <div class="${gap>=0?'gap-good':'gap-bad'}"><span>Brecha</span><b>${gap>0?'+':''}${nf.format(gap)}</b></div>
     </div>
@@ -359,7 +359,7 @@ function huDashboard(site,originalT){
 function bindHuControls(){
   document.querySelectorAll('[data-hucfg]').forEach(el=>el.onchange=()=>{
     const site=el.dataset.site,k=el.dataset.hucfg;
-    huConfig(site)[k]=k==='targetTime'?el.value:Number(el.value);
+    huConfig(site)[k]=k==='targetTime'||k==='connectedMode'?el.value:Number(el.value);
     huControl();
   });
 }
