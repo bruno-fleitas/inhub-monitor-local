@@ -235,7 +235,8 @@ function vehicleShareTable(a){
 function huConfig(site){
   state.config.hu ??= {};
   state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00',activeMinutes:10,huStartHour:7,huCutoff:'',connectedMode:'unique'};
-  state.config.hu[site].objective ??= 80;
+  state.config.hu[site].objective ??= 65;
+  state.config.hu[site].targetPct ??= 65;
   return state.config.hu[site];
 }
 function huCptRows(site,t){
@@ -296,7 +297,8 @@ function huDashboard(site,originalT){
   const avance=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
   const rows=huCptRows(site,t),activeUsers=huActiveUsers(site,t),uniqueConnected=new Set(activeUsers.map(x=>x.user)).size,duplicateConnected=rows.reduce((sum,x)=>sum+x.users.size,0),active=cfg.connectedMode==='byCpt'?duplicateConnected:uniqueConnected;
   const hours=hoursToTarget(t.hu?.maxOutTs,cfg.targetTime),prod=Math.max(1,Number(cfg.prod)||190);
-  const pph=hours>0?tot.pendiente/hours:0,need=hours>0?Math.ceil(pph/prod):0,realProd=active*prod,capacity=realProd*hours,gap=active-need;
+  const goalPct=Math.max(0,Math.min(100,Number(cfg.targetPct)??65)),goalPieces=Math.ceil(tot.etiquetado*goalPct/100),remainingGoal=Math.max(0,goalPieces-tot.abierto-tot.cerrado);
+  const pph=hours>0?remainingGoal/hours:0,need=remainingGoal===0?0:hours>0?Math.ceil(pph/prod):0,realProd=active*prod,capacity=realProd*hours,gap=active-need;
   const bad=rows.filter(x=>huPct(x)<cfg.cptObjective);
   const update=t.hu?.maxOutTs?new Date(t.hu.maxOutTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-';
   return `<section class="hu-dashboard" data-hu-site="${site}">
@@ -304,7 +306,7 @@ function huDashboard(site,originalT){
       <div><span class="hu-brand">OCASA</span><h2>${names[site]} · Control HU</h2><small>Última actualización HU <b>${update}</b> · conectados = actividad dentro de los últimos ${cfg.activeMinutes} min</small></div>
       <div class="hu-head-actions"><label>Corte de análisis (opcional)<input type="time" data-hucutoff="${site}" value="${cfg.huCutoff||''}"></label><button class="smallbtn primary" data-cutapply="${site}">Aplicar corte</button><button class="smallbtn" data-cutclear="${site}">Limpiar corte</button><label>Inicio Inhub TMS (HU)<select data-hustart="${site}">${Array.from({length:24},(_,i)=>`<option value="${i}" ${i===(cfg.huStartHour??7)?'selected':''}>${String(i).padStart(2,'0')}:00</option>`).join('')}</select></label><button class="smallbtn primary" data-huapply="${site}">Aplicar horario</button>
         <label>Hora objetivo<input type="time" data-hucfg="targetTime" data-site="${site}" value="${cfg.targetTime}"></label>
-        <label>Prod. objetivo pza/h<input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></label>
+        <label>Objetivo avance %<input type="number" min="0" max="100" step="0.1" data-hucfg="targetPct" data-site="${site}" value="${cfg.targetPct}"></label><label>Prod. objetivo pza/h<input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></label>
         <label>Verde desde %<input type="number" min="0" max="100" step="0.1" data-hucfg="objective" data-site="${site}" value="${cfg.objective}"></label><label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label><label>Conteo conectados<select data-hucfg="connectedMode" data-site="${site}"><option value="unique" ${cfg.connectedMode!=='byCpt'?'selected':''}>Sin duplicados</option><option value="byCpt" ${cfg.connectedMode==='byCpt'?'selected':''}>Con duplicados (por CPT)</option></select></label><label>Ventana conectados (min)<input type="number" min="1" max="120" step="1" data-hucfg="activeMinutes" data-site="${site}" value="${cfg.activeMinutes}"></label>
       </div>
     </div>
@@ -313,7 +315,7 @@ function huDashboard(site,originalT){
       <div><span>Hora objetivo</span><b>${cfg.targetTime}</b></div>
       <div><span>Tiempo restante</span><b>${fmtDuration(hours)}</b></div>
       <div><span>Conectados ${cfg.connectedMode==='byCpt'?'por CPT (con duplicados)':'únicos'}</span><b>${nf.format(active)}</b><small>Únicos: ${nf.format(uniqueConnected)} · Por CPT: ${nf.format(duplicateConnected)}</small></div>
-      <div><span>Necesarios</span><b>${nf.format(need)}</b></div>
+      <div><span>Necesarios para ${pf.format(goalPct)}%</span><b>${nf.format(need)}</b></div>
       <div class="${gap>=0?'gap-good':'gap-bad'}"><span>Brecha</span><b>${gap>0?'+':''}${nf.format(gap)}</b></div>
     </div>
     <div class="hu-layout">
@@ -322,9 +324,10 @@ function huDashboard(site,originalT){
           <table class="hu-summary"><tr><td>TOTAL Piezas</td><td>${nf.format(tot.etiquetado)}</td></tr><tr><td>Piezas con HU Abierto</td><td>${nf.format(tot.abierto)}</td></tr><tr><td>Piezas HU Cerrado</td><td>${nf.format(tot.cerrado)}</td></tr><tr><td>Piezas Pendientes de HU</td><td>${nf.format(tot.pendiente)}</td></tr></table>
           <div class="hu-big ${huTone(avance,cfg.objective)}">${pf.format(avance)}%</div>
         </div>
+        ${huAirPanel(site,originalT)}
         <div class="hu-titlebar">CONTROL - CPT / XD</div>
         <h3>Armado de HU · General (sin MELI Air)</h3>
-        <div class="hu-scroll"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr>
+        <div class="hu-scroll hu-cpt-full"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr>
         ${rows.map(x=>{const a=huPct(x);return `<tr><td>${x.cpt}</td><td>${nf.format(x.etiquetado)}</td><td>${nf.format(x.abierto)}</td><td>${nf.format(x.cerrado)}</td><td class="hu-pend">${nf.format(x.pendiente)}</td><td><span class="hu-pill ${huTone(a,cfg.objective)}">${pf.format(a)}%</span></td><td>${huUserButton([...x.users].map(user=>({user,last:(huActiveUsers(site,t).find(a=>a.user===user)?.last||null)})),'CPT '+x.cpt+' · conectados')}</td></tr>`}).join('')}
         <tr class="total"><td>Total</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td>${pf.format(avance)}%</td><td>${huUserButton([...new Map(huActiveUsers(site,t).map(a=>[a.user,{user:a.user,last:a.last}])).values()],'Total · conectados')}</td></tr></table></div>
       </div>
@@ -332,10 +335,10 @@ function huDashboard(site,originalT){
         <h3>Datos operativos</h3>
         <div class="hu-ops"><table class="hu-table op">
           <tr><td>total</td><td>${nf.format(tot.etiquetado)}</td></tr>
-          <tr><td>objetivo avance</td><td>${nf.format(Math.round(tot.etiquetado*cfg.objective/100))}</td></tr>
+          <tr><td>objetivo ${pf.format(goalPct)}% a las ${cfg.targetTime}</td><td>${nf.format(goalPieces)}</td></tr><tr><td>piezas faltantes para objetivo</td><td>${nf.format(remainingGoal)}</td></tr>
           <tr><td>piezas procesadas</td><td>${nf.format(tot.abierto+tot.cerrado)}</td></tr>
           <tr><td>HU cerrado</td><td>${nf.format(tot.cerrado)}</td></tr>
-          <tr><td>pendiente</td><td>${nf.format(tot.pendiente)}</td></tr>
+          <tr><td>pendiente total HU</td><td>${nf.format(tot.pendiente)}</td></tr>
           <tr><td>hs restantes</td><td>${fmtDuration(hours)}</td></tr>
           <tr><td>pza x hs neces</td><td>${nf.format(Math.ceil(pph))}</td></tr>
           <tr><td>usuarios HU necesarios</td><td class="hu-need">${nf.format(need)}</td></tr>
@@ -347,7 +350,6 @@ function huDashboard(site,originalT){
         <h3>Bipeo HU por hora</h3>${huHourlyTable(t)}
       </div>
     </div>
-    ${huAirPanel(site,originalT)}
     <div class="hu-tracking-block"><h3>Seguimiento por CPT y SubCA</h3><div class="hu-note">Avance, pendientes y conectados activos por cada SubCA dentro de su CPT.</div>${huTrackingTable(site,t)}</div>
     ${dotMonitor(site,originalT)}
     <div class="hu-bottom-grid">
