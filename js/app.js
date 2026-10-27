@@ -479,7 +479,7 @@ function huControl(){
     const site=b.dataset.cutapply||b.dataset.cutclear,clear=!!b.dataset.cutclear;
     const input=document.querySelector(`[data-hucutoff="${site}"]`);
     const next=clear?'':(input?.value||'');
-    if(!clear&&!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(next)){alert('Seleccioná una hora válida.');return}
+    if(!clear&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(next)){alert('Seleccioná una hora válida.');return}
     huConfig(site).huCutoff=next;
     b.disabled=true;b.textContent='Recalculando...';
     try{state.sites[site].tms=await runT(site);renderAll()}
