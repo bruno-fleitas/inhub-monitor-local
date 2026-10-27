@@ -298,8 +298,8 @@ function huDashboard(site,originalT){
   const avance=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
   const rows=huCptRows(site,t),activeUsers=huActiveUsers(site,t),uniqueConnected=new Set(activeUsers.map(x=>x.user)).size,duplicateConnected=rows.reduce((sum,x)=>sum+x.users.size,0),active=cfg.connectedMode==='byCpt'?duplicateConnected:uniqueConnected;
   const hours=hoursToTarget(t.hu?.maxOutTs,cfg.targetTime),prod=Math.max(1,Number(cfg.prod)||190);
-  const goalPct=Math.max(0,Math.min(100,Number(cfg.targetPct)??65)),goalPieces=Math.ceil(tot.etiquetado*goalPct/100),remainingGoal=Math.max(0,goalPieces-tot.abierto-tot.cerrado);
-  const pph=hours>0?remainingGoal/hours:0,need=remainingGoal===0?0:hours>0?Math.ceil(pph/prod):0,realProd=active*prod,capacity=realProd*hours,gap=active-need;
+  const goalPct=Math.max(0,Math.min(100,Number(cfg.targetPct??65))),forecast=Number($(site==='soldati'?'fcS':'fcE')?.value)||0,goalPieces=forecast>0?Math.ceil(forecast*goalPct/100):null,remainingGoal=goalPieces===null?null:Math.max(0,goalPieces-tot.abierto-tot.cerrado);
+  const pph=remainingGoal===null?null:hours>0?remainingGoal/hours:null,need=pph===null?null:Math.ceil(pph/prod),realProd=active*prod,capacity=realProd*hours,gap=need===null?null:active-need;
   const bad=rows.filter(x=>huPct(x)<cfg.cptObjective);
   const update=t.hu?.maxOutTs?new Date(t.hu.maxOutTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-';
   return `<section class="hu-dashboard" data-hu-site="${site}">
@@ -316,8 +316,8 @@ function huDashboard(site,originalT){
       <div><span>Hora objetivo</span><b>${cfg.targetTime}</b></div>
       <div><span>Tiempo restante</span><b>${fmtDuration(hours)}</b></div>
       <div><span>Conectados ${cfg.connectedMode==='byCpt'?'por CPT (con duplicados)':'únicos'}</span><b>${nf.format(active)}</b><small>Únicos: ${nf.format(uniqueConnected)} · Por CPT: ${nf.format(duplicateConnected)}</small></div>
-      <div><span>Necesarios para ${pf.format(goalPct)}%</span><b>${nf.format(need)}</b></div>
-      <div class="${gap>=0?'gap-good':'gap-bad'}"><span>Brecha</span><b>${gap>0?'+':''}${nf.format(gap)}</b></div>
+      <div><span>Necesarios para ${pf.format(goalPct)}%</span><b>${need===null?'Sin proyectado':nf.format(need)}</b></div>
+      <div class="${gap!==null&&gap>=0?'gap-good':'gap-bad'}"><span>Brecha</span><b>${gap>0?'+':''}${nf.format(gap)}</b></div>
     </div>
     <div class="hu-layout">
       <div class="hu-left">
@@ -336,13 +336,13 @@ function huDashboard(site,originalT){
         <h3>Datos operativos</h3>
         <div class="hu-ops"><table class="hu-table op">
           <tr><td>total</td><td>${nf.format(tot.etiquetado)}</td></tr>
-          <tr><td>objetivo ${pf.format(goalPct)}% a las ${cfg.targetTime}</td><td>${nf.format(goalPieces)}</td></tr><tr><td>piezas faltantes para objetivo</td><td>${nf.format(remainingGoal)}</td></tr>
+          <tr><td>objetivo ${pf.format(goalPct)}% a las ${cfg.targetTime}</td><td>${goalPieces===null?'Cargar proyectado':nf.format(goalPieces)}</td></tr><tr><td>piezas faltantes para objetivo</td><td>${remainingGoal===null?'-':nf.format(remainingGoal)}</td></tr>
           <tr><td>piezas procesadas</td><td>${nf.format(tot.abierto+tot.cerrado)}</td></tr>
           <tr><td>HU cerrado</td><td>${nf.format(tot.cerrado)}</td></tr>
           <tr><td>pendiente total HU</td><td>${nf.format(tot.pendiente)}</td></tr>
           <tr><td>hs restantes</td><td>${fmtDuration(hours)}</td></tr>
-          <tr><td>pza x hs neces</td><td>${nf.format(Math.ceil(pph))}</td></tr>
-          <tr><td>usuarios HU necesarios</td><td class="hu-need">${nf.format(need)}</td></tr>
+          <tr><td>pza x hs neces</td><td>${pph===null?'-':nf.format(Math.ceil(pph))}</td></tr>
+          <tr><td>usuarios HU necesarios</td><td class="hu-need">${need===null?'-':nf.format(need)}</td></tr>
           <tr><td>conectados reales</td><td>${nf.format(active)}</td></tr>
           <tr><td>brecha</td><td class="${gap>=0?'gap-good-cell':'gap-bad-cell'}">${gap>0?'+':''}${nf.format(gap)}</td></tr>
           <tr><td>producción real/h</td><td>${nf.format(realProd)}</td></tr>
@@ -533,7 +533,7 @@ function reportSiteData(site){
  const d=state.sites[site],t=d.tms,a=d.arrivals,q=d.jornalesResult,r=d.registros,lab=d.files.labelless?(t?.labelless||d.labellessStandalone):null,fc=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
  if(!t&&!a&&!q&&!r&&!lab)return null;
  const pure=t?Math.max(0,t.vol-t.big-t.sb):0,base=t?Math.max(0,t.totalConPost-t.big-t.sb):0;
- let hu=null;if(t?.hu){const z=t.hu.totals||{},hc=huConfig(site),active=new Set(huActiveUsers(site,t).map(x=>x.user)).size,hrs=hoursToTarget(t.hu.maxOutTs,hc.targetTime),need=hrs>0?Math.ceil((z.pendiente/hrs)/Math.max(1,hc.prod)):0;hu={...z,avance:z.etiquetado?pct(z.abierto+z.cerrado,z.etiquetado):0,active,need,gap:active-need,target:hc.targetTime,cpts:huCptRows(site,t).map(x=>({...x,avance:huPct(x)}))};}
+ let hu=null;if(t?.hu){const normal=huSeparateAir(t).normal,z=normal.hu.totals||{},hc=huConfig(site),users=huActiveUsers(site,normal),cpts=huCptRows(site,normal),active=hc.connectedMode==='byCpt'?cpts.reduce((s,x)=>s+x.users.size,0):new Set(users.map(x=>x.user)).size,hrs=hoursToTarget(normal.hu.maxOutTs,hc.targetTime),remaining=fc>0?Math.max(0,Math.ceil(fc*Number(hc.targetPct??65)/100)-z.abierto-z.cerrado):null,need=remaining===null||hrs<=0?null:Math.ceil(remaining/hrs/Math.max(1,hc.prod));hu={...z,avance:z.etiquetado?pct(z.abierto+z.cerrado,z.etiquetado):0,active,need,gap:need===null?null:active-need,target:hc.targetTime,cpts:cpts.map(x=>({...x,avance:huPct(x)}))};}
  const target=state.config.speedTargetTime?.[site]||'22:00',last=r?.lastTs||t?.maxInTs||null,hrs=hoursUntil(last,target),req=fc&&t&&hrs>0?Math.max(0,fc-t.totalConPost)/hrs:0;
  return{site,name:names[site],fc,t,a,q,r,lab,pure,base,hu,speed:{target,real:r?.currentSpeed??null,required:req||null,last}};
 }
