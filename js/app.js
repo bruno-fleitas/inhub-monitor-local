@@ -277,7 +277,20 @@ function huProductivity(t){
   if(!rows.length)return '<div class="hu-empty">Sin usuarios HU detectados.</div>';
   return `<table class="hu-table compact"><tr><th>Usuario HU</th><th>Piezas / eventos</th><th>Última actividad</th></tr>${rows.map(x=>`<tr><td>${esc(x.user)}</td><td>${nf.format(x.count)}</td><td>${x.last?new Date(x.last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):'-'}</td></tr>`).join('')}</table>`;
 }
-function huDashboard(site,t){
+function huSeparateAir(t){
+ const air=g=>/_A$/i.test(String(g.subca||'').trim());
+ const split=flag=>(t.hu?.subca||[]).filter(g=>air(g)===flag);
+ const total=rows=>rows.reduce((a,g)=>{for(const k of ['etiquetado','abierto','cerrado','pendiente'])a[k]+=Number(g[k]||0);return a},{etiquetado:0,abierto:0,cerrado:0,pendiente:0});
+ const normal=split(false),meli=split(true);
+ return {normal:{...t,hu:{...t.hu,subca:normal,totals:total(normal),userActivity:(t.hu.userActivity||[]).filter(x=>!air(x))}},meli:{...t,hu:{...t.hu,subca:meli,totals:total(meli),userActivity:(t.hu.userActivity||[]).filter(air)} }};
+}
+function huAirPanel(site,t){
+ const x=huSeparateAir(t).meli,tot=x.hu.totals,progress=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
+ const active=new Set(huActiveUsers(site,x).map(u=>u.user)).size;
+ return `<section class="hu-air-panel"><h3>MELI AIR · Control HU independiente</h3><div class="hu-air-grid"><div><small>Ingresos / etiquetado</small><b>${nf.format(tot.etiquetado)}</b></div><div><small>HU abierto</small><b>${nf.format(tot.abierto)}</b></div><div><small>HU cerrado</small><b>${nf.format(tot.cerrado)}</b></div><div><small>Pendientes</small><b>${nf.format(tot.pendiente)}</b></div><div><small>Avance</small><b>${pf.format(progress)}%</b></div><div><small>Conectados</small><b>${active}</b></div></div><div class="hu-scroll"><table class="hu-table"><tr><th>SubCA</th><th>Etiquetado</th><th>Abierto</th><th>Cerrado</th><th>Pendiente</th><th>Avance</th></tr>${x.hu.subca.map(g=>`<tr><td>${esc(g.subca)}</td><td>${nf.format(g.etiquetado)}</td><td>${nf.format(g.abierto)}</td><td>${nf.format(g.cerrado)}</td><td>${nf.format(g.pendiente)}</td><td>${pf.format(g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0)}%</td></tr>`).join('')}</table></div></section>`;
+}
+function huDashboard(site,originalT){
+  const t=huSeparateAir(originalT).normal;
   const cfg=huConfig(site),tot=t.hu?.totals||{etiquetado:0,abierto:0,cerrado:0,pendiente:0};
   const avance=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
   const rows=huCptRows(site,t),active=new Set(huActiveUsers(site,t).map(x=>x.user)).size;
@@ -334,7 +347,8 @@ function huDashboard(site,t){
       </div>
     </div>
     <div class="hu-tracking-block"><h3>Seguimiento por CPT y SubCA</h3><div class="hu-note">Avance, pendientes y conectados activos por cada SubCA dentro de su CPT.</div>${huTrackingTable(site,t)}</div>
-    ${dotMonitor(site,t)}
+    ${huAirPanel(site,originalT)}
+    ${dotMonitor(site,originalT)}
     <div class="hu-bottom-grid">
       <div><h3>Auditoría CPT · objetivo ${pf.format(cfg.cptObjective)}%</h3><div class="hu-scroll"><table class="hu-table compact"><tr><th>CPT</th><th>Avance</th><th>Pendiente</th><th>Estado</th></tr>${rows.map(x=>{const a=huPct(x),ok=a>=cfg.cptObjective;return `<tr><td>${x.cpt}</td><td>${pf.format(a)}%</td><td>${nf.format(x.pendiente)}</td><td><span class="hu-pill ${ok?'hu-good':a>=95?'hu-warn':'hu-bad'}">${ok?'CUMPLE':'PENDIENTE'}</span></td></tr>`}).join('')}</table></div><div class="hu-note">${bad.length?bad.length+' CPT debajo del objetivo final':'Todos los CPT cumplen el objetivo final'}.</div></div>
       <div><h3>Productividad HU · Top usuarios</h3><div class="hu-scroll">${huProductivity(t)}</div></div>
