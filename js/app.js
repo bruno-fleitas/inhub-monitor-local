@@ -81,7 +81,7 @@ function dockDashboard(){
  for(const site of ['soldati','echeverria']){
  const t=state.sites[site].tms;if(!t)continue;
  const key='dockThreshold_'+site;
- const threshold=Number(state.config[key]??40);
+ const threshold=Number(state.config[key]??localStorage.getItem('inhub_'+key)??40);
  const docks=(t.docks||[]).map(x=>({...x,n:Number(x.dock),hours:(x.last-x.first)/3600000})).filter(x=>x.count>0);
  const first=docks.length?Math.min(...docks.map(x=>x.first)):null,last=docks.length?Math.max(...docks.map(x=>x.last)):null;
  const total=docks.reduce((n,x)=>n+x.count,0),hours=first===null?0:(last-first)/3600000;
@@ -100,7 +100,7 @@ function dockDashboard(){
  <p class="muted">Velocidades calculadas entre primer y último bipeo TMS, incluyendo pausas. La velocidad general usa el intervalo global; no es la suma de velocidades individuales. Los usuarios son los identificados en Inbound User ID, no necesariamente quienes están conectados ahora.</p></article>`;
  }
  $('docksView').innerHTML=html||'<article class="card empty">Procesá un TMS para visualizar las dársenas.</article>';
- document.querySelectorAll('.dock-limit').forEach(el=>el.onchange=()=>{const n=Number(el.value);if(!Number.isFinite(n)||n<0)return;state.config['dockThreshold_'+el.dataset.dockSite]=n;dockDashboard()});
+ document.querySelectorAll('.dock-limit').forEach(el=>el.onchange=()=>{const n=Number(el.value);if(!Number.isFinite(n)||n<0)return;state.config['dockThreshold_'+el.dataset.dockSite]=n;localStorage.setItem('inhub_dockThreshold_'+el.dataset.dockSite,String(n));dockDashboard()});
 }
 
 function renderAll(){summary();operation();huControl();curves();dockDashboard();mix();subca();jornales();mail();reportPreview()}
