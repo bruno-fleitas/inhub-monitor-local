@@ -1,1 +1,590 @@
-[{"subca": "OCS060", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "OCS061", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "OCS070", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SBH1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SBH1_X", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SCK1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SNQ2_A", "ola": "violeta", "cpt": 0, "indicador": "prioritario"}, {"subca": "SCO1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SCO2", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SCS3", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SCZ1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SER1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SGU1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SRV1_A", "ola": "violeta", "cpt": 0, "indicador": "prioritario"}, {"subca": "SNQ1_A", "ola": "violeta", "cpt": 0, "indicador": "prioritario"}, {"subca": "SRF1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SSR1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "SSR1_X", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "STD1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "STQ1", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "STW1_A", "ola": "violeta", "cpt": 0, "indicador": "prioritario"}, {"subca": "SVI1_X", "ola": "roja", "cpt": 0, "indicador": "prioritario"}, {"subca": "OCS062", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "OCS066", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "OCS064", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SBU1", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SJN1", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SLA1", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SMQ1", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SPG1", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SPN1", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SRU1", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SRU2", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SCF4", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "SBU5", "ola": "rosa", "cpt": 1, "indicador": "prioritario"}, {"subca": "AND010", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "HOP300", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "OCS063", "ola": "roja", "cpt": 2, "indicador": "prioritario"}, {"subca": "OCS067", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "OCS069", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SBU3_2", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SRV1", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SJU1", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SRO1", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SRO2", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SRO2_X", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SSF1", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SSF1_X", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SST1", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "STU1", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "STU1_X", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SRG1", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "SBU6", "ola": "amarillo", "cpt": 2, "indicador": "prioritario"}, {"subca": "AND011", "ola": "amarillo", "cpt": 3, "indicador": "prioritario"}, {"subca": "SBC1", "ola": "amarillo", "cpt": 3, "indicador": "prioritario"}, {"subca": "SBU3_1", "ola": "amarillo", "cpt": 3, "indicador": "prioritario"}, {"subca": "SBU4", "ola": "amarillo", "cpt": 3, "indicador": "prioritario"}, {"subca": "SCF2", "ola": "amarillo", "cpt": 3, "indicador": "prioritario"}, {"subca": "SCF3", "ola": "amarillo", "cpt": 3, "indicador": "prioritario"}, {"subca": "SLB1", "ola": "amarillo", "cpt": 3, "indicador": "prioritario"}, {"subca": "COR125", "ola": "azul", "cpt": 4, "indicador": "prioritario"}, {"subca": "OCS052", "ola": "azul", "cpt": 4, "indicador": "prioritario"}, {"subca": "PCK350_", "ola": "azul", "cpt": 4, "indicador": "prioritario"}, {"subca": "SCO1_X", "ola": "azul", "cpt": 4, "indicador": "prioritario"}, {"subca": "SPS1", "ola": "azul", "cpt": 4, "indicador": "prioritario"}, {"subca": "SRE1", "ola": "azul", "cpt": 4, "indicador": "prioritario"}, {"subca": "SRE1_X", "ola": "azul", "cpt": 4, "indicador": "prioritario"}, {"subca": "AND025", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND027", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND028", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND029", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND030", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND031", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND032", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND033", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND034", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "AND040", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "COR140", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "OCA291", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "PCK390_", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "SNQ1", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "SNQ2", "ola": "azul", "cpt": 5, "indicador": "prioritario"}, {"subca": "SLU1", "ola": "verde", "cpt": 6, "indicador": "standard"}, {"subca": "SME1", "ola": "verde", "cpt": 6, "indicador": "standard"}, {"subca": "SME1_X", "ola": "verde", "cpt": 6, "indicador": "standard"}, {"subca": "SSJ1", "ola": "verde", "cpt": 6, "indicador": "standard"}, {"subca": "SBU9", "ola": "verde", "cpt": 7, "indicador": "standard"}, {"subca": "FBA1_R", "ola": "verde", "cpt": 8, "indicador": "standard"}, {"subca": "FBA4_R", "ola": "verde", "cpt": 8, "indicador": "standard"}, {"subca": "SUS1_C", "ola": "verde", "cpt": 9, "indicador": "standard"}]
+[
+  {
+    "subca": "OCS060",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS061",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS070",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBH1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBH1_X",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCK1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SNQ2_A",
+    "ola": "violeta",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCO1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCO2",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCS3",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCZ1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SER1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SGU1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRV1_A",
+    "ola": "violeta",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SNQ1_A",
+    "ola": "violeta",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRF1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SSR1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SSR1_X",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "STD1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "STQ1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "STW1_A",
+    "ola": "violeta",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SVI1_X",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS062",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS066",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS064",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBU1",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SJN1",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SLA1",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SMQ1",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SPG1",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SPN1",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRU1",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRU2",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCF4",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBU5",
+    "ola": "rosa",
+    "cpt": 1,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND010",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "HOP300",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS063",
+    "ola": "roja",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS067",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS069",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBU3_2",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRV1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SJU1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRO1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRO2",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRO2_X",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SSF1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SSF1_X",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SST1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "STU1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "STU1_X",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRG1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBU6",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND011",
+    "ola": "amarillo",
+    "cpt": 3,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBC1",
+    "ola": "amarillo",
+    "cpt": 3,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBU3_1",
+    "ola": "amarillo",
+    "cpt": 3,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBU4",
+    "ola": "amarillo",
+    "cpt": 3,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCF2",
+    "ola": "amarillo",
+    "cpt": 3,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCF3",
+    "ola": "amarillo",
+    "cpt": 3,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SLB1",
+    "ola": "amarillo",
+    "cpt": 3,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "COR125",
+    "ola": "azul",
+    "cpt": 4,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCS052",
+    "ola": "azul",
+    "cpt": 4,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "PCK350_",
+    "ola": "azul",
+    "cpt": 4,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SCO1_X",
+    "ola": "azul",
+    "cpt": 4,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SPS1",
+    "ola": "azul",
+    "cpt": 4,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRE1",
+    "ola": "azul",
+    "cpt": 4,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SRE1_X",
+    "ola": "azul",
+    "cpt": 4,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND025",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND027",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND028",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND029",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND030",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND031",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND032",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND033",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND034",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "AND040",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "COR140",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "OCA291",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "PCK390_",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SNQ1",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SNQ2",
+    "ola": "azul",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SLU1",
+    "ola": "verde",
+    "cpt": 6,
+    "indicador": "standard"
+  },
+  {
+    "subca": "SME1",
+    "ola": "verde",
+    "cpt": 6,
+    "indicador": "standard"
+  },
+  {
+    "subca": "SME1_X",
+    "ola": "verde",
+    "cpt": 6,
+    "indicador": "standard"
+  },
+  {
+    "subca": "SSJ1",
+    "ola": "verde",
+    "cpt": 6,
+    "indicador": "standard"
+  },
+  {
+    "subca": "SBU9",
+    "ola": "verde",
+    "cpt": 7,
+    "indicador": "standard"
+  },
+  {
+    "subca": "FBA1_R",
+    "ola": "verde",
+    "cpt": 8,
+    "indicador": "standard"
+  },
+  {
+    "subca": "FBA4_R",
+    "ola": "verde",
+    "cpt": 8,
+    "indicador": "standard"
+  },
+  {
+    "subca": "SUS1_C",
+    "ola": "verde",
+    "cpt": 9,
+    "indicador": "standard"
+  },
+  {
+    "subca": "SBU2",
+    "ola": "amarillo",
+    "cpt": 3,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SUS1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SVI1",
+    "ola": "roja",
+    "cpt": 0,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "STW1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SMC1",
+    "ola": "azul",
+    "cpt": 4,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SNQ3",
+    "ola": "verde",
+    "cpt": 5,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "SBU10",
+    "ola": "verde",
+    "cpt": 7,
+    "indicador": "standard"
+  },
+  {
+    "subca": "SDE1",
+    "ola": "amarillo",
+    "cpt": 2,
+    "indicador": "prioritario"
+  }
+]
