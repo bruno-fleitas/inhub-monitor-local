@@ -317,7 +317,7 @@ function huDashboard(site,originalT){
       <div><span>Tiempo restante</span><b>${fmtDuration(hours)}</b></div>
       <div><span>Conectados ${cfg.connectedMode==='byCpt'?'por CPT (con duplicados)':'únicos'}</span><b>${nf.format(active)}</b><small>Únicos: ${nf.format(uniqueConnected)} · Por CPT: ${nf.format(duplicateConnected)}</small></div>
       <div><span>Necesarios para ${pf.format(goalPct)}%</span><b>${need===null?'Sin proyectado':nf.format(need)}</b></div>
-      <div class="${gap!==null&&gap>=0?'gap-good':'gap-bad'}"><span>Brecha</span><b>${gap>0?'+':''}${nf.format(gap)}</b></div>
+      <div class="${gap!==null&&gap>=0?'gap-good':'gap-bad'}"><span>Brecha</span><b>${gap===null?'—':(gap>0?'+':'')+nf.format(gap)}</b></div>
     </div>
     <div class="hu-layout">
       <div class="hu-left">
