@@ -6,10 +6,10 @@ function parts(v){
  let m=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
  if(m)return{d:+m[1],m:+m[2],y:+m[3],h:m[4]!==undefined?+m[4]:null,min:m[5]?+m[5]:0,sec:m[6]?+m[6]:0};
  m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
- if(m)return{y:+m[1],m:+m[2],d:+m[3],h:m[4]!==undefined?+m[4]:null,min:m[5]?+m[5]:0};
+ if(m)return{y:+m[1],m:+m[2],d:+m[3],h:m[4]!==undefined?+m[4]:null,min:m[5]?+m[5]:0,sec:m[6]?+m[6]:0};
  const months={ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,oct:10,nov:11,dic:12};
  m=s.match(/(\d{1,2})\s+([a-záéíóú]{3,})\s+(\d{4})(?:[,\s]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/i);
- if(m){const month=months[norm(m[2]).slice(0,3)];if(month)return{d:+m[1],m:month,y:+m[3],h:m[4]!==undefined?+m[4]:null,min:m[5]?+m[5]:0}}
+ if(m){const month=months[norm(m[2]).slice(0,3)];if(month)return{d:+m[1],m:month,y:+m[3],h:m[4]!==undefined?+m[4]:null,min:m[5]?+m[5]:0,sec:m[6]?+m[6]:0}}
  return null
 }
 const ts=p=>p&&p.y!=null?new Date(p.y,p.m-1,p.d,p.h||0,p.min||0,p.sec||0,0).getTime():null;
