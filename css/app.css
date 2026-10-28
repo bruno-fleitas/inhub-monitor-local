@@ -427,3 +427,12 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .hu-dashboard .hu-cpt-full .hu-table th,.hu-dashboard .hu-cpt-full .hu-table td{padding:3px 4px!important;line-height:1.05!important;font-size:10px!important}
 .hu-dashboard .hu-cpt-full .hu-table th{font-size:9px!important}
 .hu-dashboard .hu-cpt-full .hu-table .pill,.hu-dashboard .hu-cpt-full .hu-table .badge{padding:2px 5px!important}
+
+/* Resumen compacto de tipos de vehículo debajo de SPR */
+.vehicle-type-inline{margin-top:12px;padding:10px 12px;border:1px solid #cbd8e9;border-radius:9px;background:#f2f6fc;color:#18304e}
+.vehicle-type-inline>strong{display:block;font-size:13px;margin-bottom:8px}
+.vehicle-type-inline-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.vehicle-type-inline-grid>div{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border:1px solid #d7e1ee;border-radius:7px;padding:8px 10px}
+.vehicle-type-inline-grid span{font-size:12px}.vehicle-type-inline-grid b{font-size:17px;color:#103b69}
+.vehicle-type-inline small{display:block;margin-top:7px;font-size:10px;color:#62758c}
+@media(max-width:750px){.vehicle-type-inline-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
