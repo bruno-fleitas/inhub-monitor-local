@@ -52,7 +52,7 @@ function speedPanel(site){
     <div class="speed-head"><h3>Velocidad Inhub / Descarga</h3><label>Hora objetivo<input type="time" data-speed-target="${site}" value="${target}"></label></div>
     <table class="speed-table">
       <tr><td>Últ. actualización</td><td>${last}</td><td></td></tr>
-      <tr><td>Proyectado</td><td>${fc?nf.format(fc):'-'}</td><td>${fc?'100,0%':'-'}</td></tr>
+      <tr><td>Proyectado</td><td>${fc?nf.format(fc):'-'}</td><td>-</td></tr>
       <tr><td>Arribado</td><td>${nf.format(arrived)}</td><td>${fc?pf.format(pct(arrived,fc))+'%':'-'}</td></tr>
       <tr><td>Bipeado</td><td>${nf.format(bipeado)}</td><td>${fc?pf.format(pct(bipeado,fc))+'%':'-'}</td></tr>
       <tr><td>Arribado - Bipeado</td><td class="${diff<0?'negnum':'posnum'}">${diff>0?'+':''}${nf.format(diff)}</td><td>${fc?pf.format(pct(diff,fc))+'%':'-'}</td></tr>
