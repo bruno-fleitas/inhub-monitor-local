@@ -357,3 +357,30 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .vehicle-dist-card>div{display:flex;justify-content:space-between;gap:14px;align-items:center}.vehicle-dist-card>div+div{margin-top:10px;flex-wrap:wrap;color:#aabbd4;font-size:13px}.vehicle-dist-card strong{font-size:25px}.vehicle-dist-card span b{color:white}
 .vehicle-dist-total{text-align:right;font-weight:700;padding:8px 0;color:#cbd8eb}
 @media(max-width:760px){.vehicle-dist-layout{grid-template-columns:1fr}.vehicle-dist-card>div{flex-wrap:wrap}}
+
+
+/* Distribución de vehículos: diseño de presentación con etiquetas y conectores */
+.vehicle-dist{background:linear-gradient(145deg,#101c31,#0d1729);border:1px solid #34455f;border-radius:18px;padding:24px 28px;box-shadow:0 14px 35px #00000020}
+.vehicle-dist-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #2b3d55;padding-bottom:15px}
+.vehicle-dist-heading h3{font-size:22px;color:#f5f9ff;letter-spacing:.2px;margin:0 0 5px}
+.vehicle-dist-heading .muted{margin:0;font-size:13px}
+.vehicle-dist-summary{white-space:nowrap;color:#9eafca;font-size:13px}.vehicle-dist-summary b{color:#fff;font-size:17px}.vehicle-dist-summary span{padding:0 7px;color:#52708d}
+.vehicle-dist-layout{grid-template-columns:minmax(330px,.95fr) minmax(380px,1.05fr);gap:30px;margin-top:20px}
+.vehicle-dist-chart{position:relative;width:100%;max-width:520px;min-height:370px;display:grid;place-items:center;margin:auto}
+.vehicle-dist-pie{width:min(64%,320px);margin:auto;box-shadow:0 0 0 6px #243752,0 14px 40px #0004;z-index:1}
+.vehicle-dist-pie>div{width:46%;font-size:34px;box-shadow:0 0 0 5px #101b30}
+.vehicle-dist-label{position:absolute;z-index:3;display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;background:#182840e8;border:1px solid var(--label-color);white-space:nowrap;font-size:13px;box-shadow:0 4px 12px #0004}
+.vehicle-dist-label b{color:white;font-size:15px}.vehicle-dist-label span{color:var(--label-color);font-weight:800}
+.vehicle-dist-leader{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.vehicle-dist-card{border-left:4px solid var(--vehicle-color);background:linear-gradient(100deg,#192941,#152238);padding:16px 19px;box-shadow:0 5px 15px #0002;transition:transform .18s,border-color .18s}
+.vehicle-dist-card:hover{transform:translateY(-2px);border-color:var(--vehicle-color)}
+.vehicle-dist-card-top b{color:var(--vehicle-color);display:flex;align-items:center;gap:9px;font-size:16px}
+.vehicle-dist-card-top i{display:inline-block;width:11px;height:11px;background:var(--vehicle-color);border-radius:50%;box-shadow:0 0 12px var(--vehicle-color)}
+.vehicle-dist-card-top strong{font-size:29px;letter-spacing:-.5px}
+.vehicle-dist-card-stats{display:grid!important;grid-template-columns:1fr 1fr;gap:14px!important;margin-top:13px!important}
+.vehicle-dist-card-stats span{display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-size:10px!important;letter-spacing:.7px;font-weight:700;color:#92a8c5}
+.vehicle-dist-card-stats span b{font-size:19px;letter-spacing:0;color:#f6f9ff}
+.vehicle-dist-card-stats em{font-size:11px;font-style:normal;letter-spacing:0;color:#94a9c4}
+.vehicle-dist-total{border-top:1px solid #30415b;margin-top:4px;padding-top:13px}
+@media(max-width:950px){.vehicle-dist-layout{grid-template-columns:1fr}.vehicle-dist-chart{max-width:500px}.vehicle-dist-heading{flex-wrap:wrap}}
+@media(max-width:520px){.vehicle-dist{padding:15px}.vehicle-dist-chart{min-height:290px}.vehicle-dist-label{font-size:10px;padding:3px 4px}.vehicle-dist-label b{font-size:11px}.vehicle-dist-card-stats{grid-template-columns:1fr 1fr}}
