@@ -1,5 +1,5 @@
 const TEXT_DECODER=new TextDecoder('utf-8');
-const norm=s=>String(s??'').replace(/[\u00A0\u2007\u202F]/g,' ').replace(/[\r\n\t]+/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
+const norm=s=>String(s??'').replace(/[\u00A0\u2007\u202F]/g,' ').replace(/[\r\n\t_]+/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
 function num(v){if(typeof v==='number')return Number.isFinite(v)?v:0;let s=String(v??'').trim().replace(/\s/g,'');if(!s||/^null$/i.test(s))return 0;const comma=s.lastIndexOf(','),dot=s.lastIndexOf('.');if(comma>=0&&dot>=0){s=comma>dot?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'')}else if(comma>=0){s=s.replace(',','.')}const n=Number(s);return Number.isFinite(n)?n:0}
 function parts(v){
  if(v==null||v==='')return null;const s=String(v).trim();
