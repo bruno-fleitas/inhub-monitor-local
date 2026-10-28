@@ -46,7 +46,7 @@ async function analyze(file,day){
   const sample=rows.find(r=>Object.values(r).some(v=>v!==''))||rows[0];
   const kChofer=key(sample,['CHOFER']),kTipo=key(sample,['TIPO DE OPERACION']),kAcc=key(sample,['Accion']),kFecha=key(sample,['Fecha y hora']),kPaq=key(sample,['CANT PAQUETES']);
   if(!kTipo||!kAcc||!kFecha)throw new Error('Registros: faltan columnas requeridas.');
-  const byHour=Array(24).fill(0),vehiclesByHour=Array.from({length:24},()=>({veh:0,camioneta:0,chasis:0,semi:0}));const vehicleIds=new Set(),vehicleTypes={camioneta:{veh:0,packages:0},chasis:{veh:0,packages:0},semi:{veh:0,packages:0},otro:{veh:0,packages:0}};const kId=key(sample,['ID Registro']),kVehicle=key(sample,['TIPO DE VEHICULO']);let records=0,packages=0,lastTs=null,currentHourPackages=0;
+  const byHour=Array(24).fill(0),vehiclesByHour=Array.from({length:24},()=>({veh:0,camioneta:0,chasis:0,semi:0}));const packagesByTypeHour={chasis:Array(24).fill(0),camioneta:Array(24).fill(0),semi:Array(24).fill(0),otro:Array(24).fill(0)};const vehicleIds=new Set(),vehicleTypes={camioneta:{veh:0,packages:0},chasis:{veh:0,packages:0},semi:{veh:0,packages:0},otro:{veh:0,packages:0}};const kId=key(sample,['ID Registro']),kVehicle=key(sample,['TIPO DE VEHICULO']);let records=0,packages=0,lastTs=null,currentHourPackages=0;
   for(const r of rows){
     const chofer=kChofer?String(r[kChofer]??'').trim():'';
     const tipo=String(r[kTipo]??'').trim();
@@ -60,7 +60,7 @@ async function analyze(file,day){
     const id=kId?String(r[kId]??'').trim():'';
     const uniqueKey=id||('fila-'+records);
     const type=norm(kVehicle?r[kVehicle]:'');const category=type.includes('camioneta')?'camioneta':type.includes('chasis')?'chasis':type.includes('semi')?'semi':'otro';
-    vehicleTypes[category].packages+=q;
+    vehicleTypes[category].packages+=q;packagesByTypeHour[category][p.h]+=q;
     if(!vehicleIds.has(uniqueKey)){
       vehicleIds.add(uniqueKey);
       const v=vehiclesByHour[p.h];v.veh++;
@@ -77,7 +77,7 @@ async function analyze(file,day){
     currentHourPackages=byHour[currentHour]||0;
     currentSpeed=elapsedMinutes>0?currentHourPackages/(elapsedMinutes/60):currentHourPackages;
   }
-  return{ok:true,records,packages,byHour,vehiclesByHour,vehicles:vehicleIds.size,vehicleTypes,lastTs,currentHour,currentHourPackages,elapsedMinutes,currentSpeed,sheet:src.sheet};
+  return{ok:true,records,packages,byHour,vehiclesByHour,vehicles:vehicleIds.size,vehicleTypes,packagesByTypeHour,lastTs,currentHour,currentHourPackages,elapsedMinutes,currentSpeed,sheet:src.sheet};
 }
 self.onmessage=async e=>{
   if(e.data?.type!=='PROCESS_REGISTROS')return;
