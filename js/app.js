@@ -45,7 +45,7 @@ function speedPanel(site){
   const bipeado=t?.totalConPost ?? 0;
   const hrs=hoursUntil(lastTs,target);
   const required=(fc&&hrs>0)?Math.max(0,fc-bipeado)/hrs:0;
-  const real=r?.currentSpeed||0;
+  const real=tmsHourlyVelocity(t);
   const diff=arrived-bipeado,pend=fc?fc-bipeado:0;
   const last=lastTs?new Date(lastTs).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-';
   return `<div class="speed-panel">
@@ -57,12 +57,19 @@ function speedPanel(site){
       <tr><td>Bipeado</td><td>${nf.format(bipeado)}</td><td>${fc?pf.format(pct(bipeado,fc))+'%':'-'}</td></tr>
       <tr><td>Arribado - Bipeado</td><td class="${diff<0?'negnum':'posnum'}">${diff>0?'+':''}${nf.format(diff)}</td><td>${fc?pf.format(pct(diff,fc))+'%':'-'}</td></tr>
       <tr><td>Proyectado - Bipeado</td><td>${fc?nf.format(pend):'-'}</td><td>${fc?pf.format(pct(pend,fc))+'%':'-'}</td></tr>
-      <tr><td>Velocidad real descarga</td><td><b>${nf.format(Math.round(real))}</b></td><td>pza/h</td></tr>
-      <tr><td>Velocidad necesaria a ${target}</td><td class="${real>=required?'speed-ok':'speed-bad'}"><b>${fc?nf.format(Math.ceil(required)):'-'}</b></td><td>pza/h</td></tr>
-      <tr><td>Brecha velocidad</td><td class="${real-required>=0?'speed-ok':'speed-bad'}"><b>${fc?(real-required>=0?'+':'')+nf.format(Math.round(real-required)):'-'}</b></td><td>pza/h</td></tr>
+      <tr><td>Velocidad real descarga</td><td><b>${real==null?'-':nf.format(Math.round(real))}</b></td><td>pza/h</td></tr>
+      <tr><td>Velocidad necesaria a ${target}</td><td class="${real!=null&&real>=required?'speed-ok':'speed-bad'}"><b>${fc?nf.format(Math.ceil(required)):'-'}</b></td><td>pza/h</td></tr>
+      <tr><td>Brecha velocidad</td><td class="${real!=null&&real-required>=0?'speed-ok':'speed-bad'}"><b>${fc?(real-required>=0?'+':'')+nf.format(Math.round(real-required)):'-'}</b></td><td>pza/h</td></tr>
     </table>
     <div class="speed-note">Registros: solo CHOFER informado · TIPO DE OPERACION = Descarga · Accion = add · se excluyen horas 01 y 02.</div>
   </div>`;
+}
+// Misma regla que BUSCARV(HORA(W4);BF:BH;3;0): piezas TMS de la hora / minutos desde HH:00.
+function tmsHourlyVelocity(t){
+ if(!t?.by?.length||!Number.isFinite(t.maxInTs))return null;
+ const dt=new Date(t.maxInTs),h=dt.getHours(),start=new Date(dt);start.setMinutes(0,0,0);
+ const minutes=(dt-start)/60000,qty=Number(t.by[h]?.tot||0);
+ return minutes>0?qty*60/minutes:null;
 }
 function huInhubMini(site){
  const d=state.sites[site],t=d.tms,r=d.registros,a=d.arrivals;
@@ -73,7 +80,7 @@ function huInhubMini(site){
  const last=t?.maxInTs||r?.lastTs||null;
  const clock=last?new Date(last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'—';
  const hourly=r?.currentHourPackages??null;
- const velocity=r?.currentSpeed??null;
+ const velocity=tmsHourlyVelocity(t);
  const val=n=>n===null?'—':nf.format(Math.round(n));
  const percentage=n=>fc&&n!==null?pf.format(pct(n,fc))+'%':'—';
  const row=(name,n,p)=>'<tr><td>'+name+'</td><td>'+val(n)+'</td><td>'+p+'</td></tr>';
@@ -82,9 +89,9 @@ function huInhubMini(site){
  row('Arribado',arrived,percentage(arrived))+
  row('Bipeado Inhub',bipeado,percentage(bipeado))+
  row('Arribado − Bipeado',arrived!==null&&bipeado!==null?arrived-bipeado:null,arrived!==null&&bipeado!==null?percentage(arrived-bipeado):'—')+
- row('Descarga hora actual',hourly,percentage(hourly))+
+ row('Descarga x hora necesaria',Number.isFinite(hourly)?hourly:null,Number.isFinite(hourly)?percentage(hourly):'—')+
  row('Proyectado − Bipeado',fc&&bipeado!==null?fc-bipeado:null,fc&&bipeado!==null?percentage(fc-bipeado):'—')+
- row('Velocidad real (pza/h)',velocity,'—')+'</table><small>Arribado: '+(r?'Reporte de registros':a?'Arribos':'sin fuente')+' · Bipeado: TMS Inbound Date Included · velocidad: reporte de registros. Los datos no disponibles se muestran como —.</small></div>';
+ row('Velocidad real (pza/h)',velocity,'—')+'</table><small>Arribado: '+(r?'Reporte de registros':a?'Arribos':'sin fuente')+' · Bipeado: TMS Inbound Date Included · velocidad: TMS (piezas de la hora actual / minutos desde HH:00). Los datos no disponibles se muestran como —.</small></div>';
 }
 function bindSpeedTargets(){
   document.querySelectorAll('[data-speed-target]').forEach(el=>el.onchange=()=>{
