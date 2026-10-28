@@ -75,7 +75,8 @@ function huInhubMini(site){
  const d=state.sites[site],t=d.tms,r=d.registros,a=d.arrivals;
  const fc=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
  const startHour=Math.max(0,Math.min(23,Number(huConfig(site).inhubStartHour??0)));
- const arrived=r?.byHour?.length?r.byHour.reduce((sum,qty,h)=>sum+(h>=startHour?Number(qty||0):0),0):(r?.packages??a?.totalShip??null);
+ const arrivalStart=Math.max(0,Math.min(23,Number(huConfig(site).arrivalStartHour??startHour)));
+ const arrived=r?.byHour?.length?r.byHour.reduce((sum,qty,h)=>sum+(h>=arrivalStart?Number(qty||0):0),0):(r?.packages??a?.totalShip??null);
  const bipeado=t?(t.by?.length?t.by.reduce((sum,h,i)=>sum+(i>=startHour?Number(h.tot||0):0),0):t.totalConPost):null;
  const last=t?.maxInTs||r?.lastTs||null;
  const clock=last?new Date(last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'—';
@@ -86,7 +87,7 @@ function huInhubMini(site){
  const val=n=>n===null?'—':nf.format(Math.round(n));
  const percentage=n=>fc&&n!==null?pf.format(pct(n,fc))+'%':'—';
  const row=(name,n,p)=>'<tr><td>'+name+'</td><td>'+val(n)+'</td><td>'+p+'</td></tr>';
- return '<div class="hu-inhub-mini"><h3>Resumen Inhub · Descarga</h3><small>Inicio Inhub: '+String(startHour).padStart(2,'0')+':00 · Bipeado filtrado por hora de Inbound Date Included.</small><div class="hu-inhub-time">Últ. actualización <b>'+clock+'</b></div><table class="hu-table compact"><tr><th>Indicador</th><th>Piezas</th><th>% proy.</th></tr>'+
+ return '<div class="hu-inhub-mini"><h3>Resumen Inhub · Descarga</h3><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0"><label>Inicio arribado <select data-arrival-start="'+site+'">'+Array.from({length:24},(_,h)=>'<option value="'+h+'" '+(h===arrivalStart?'selected':'')+'>'+String(h).padStart(2,'0')+':00</option>').join('')+'</select></label><button type="button" class="smallbtn primary" data-arrival-apply="'+site+'">Aplicar arribado</button><small>Independiente del inicio de Inhub y HU</small></div><small>Inicio Inhub: '+String(startHour).padStart(2,'0')+':00 · Bipeado filtrado por hora de Inbound Date Included.</small><div class="hu-inhub-time">Últ. actualización <b>'+clock+'</b></div><table class="hu-table compact"><tr><th>Indicador</th><th>Piezas</th><th>% proy.</th></tr>'+
  row('Proyectado',fc||null,fc?'100,0%':'—')+
  row('Arribado',arrived,percentage(arrived))+
  row('Bipeado Inhub',bipeado,percentage(bipeado))+
@@ -578,6 +579,7 @@ function huControl(){
   for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(t?.hu)h+=huDashboard(site,t)}
   $('huView').innerHTML=h||'<div class="card empty">Procesá un TMS para ver el Control HU.</div>';
   bindHuControls();
+  document.querySelectorAll('[data-arrival-apply]').forEach(b=>b.onclick=()=>{const site=b.dataset.arrivalApply,sel=document.querySelector(`[data-arrival-start="${site}"]`);if(!sel)return;huConfig(site).arrivalStartHour=Number(sel.value);huControl();});
   document.querySelectorAll('[data-inhubapply]').forEach(b=>b.onclick=()=>{const site=b.dataset.inhubapply,sel=document.querySelector(`[data-inhubstart="${site}"]`);if(!sel)return;huConfig(site).inhubStartHour=Number(sel.value);huControl();});
   document.querySelectorAll('[data-huapply]').forEach(b=>b.onclick=async()=>{const site=b.dataset.huapply,sel=document.querySelector(`[data-hustart="${site}"]`);if(!sel)return;huConfig(site).huStartHour=Number(sel.value);if(!state.sites[site].files.tms)return;const prev=b.textContent;b.disabled=true;b.textContent='Recalculando...';try{state.sites[site].tms=await runT(site);renderAll()}catch(e){alert('No se pudo recalcular el Control HU: '+e.message);b.disabled=false;b.textContent=prev}});
   document.querySelectorAll('[data-cutapply],[data-cutclear]').forEach(b=>b.onclick=async()=>{
