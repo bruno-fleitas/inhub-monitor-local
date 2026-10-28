@@ -312,3 +312,17 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .hu-dashboard .hu-status-strip small{display:block;font-size:9px;margin-top:3px}
 
 .hu-air-compact{margin:8px 0 12px}.hu-air-compact h3{margin:0 0 5px;text-align:center;font-size:13px;color:#eaf2ff}.hu-air-compact .hu-table{width:100%;border-collapse:collapse;font-size:11px}.hu-air-compact .hu-table th,.hu-air-compact .hu-table td{text-align:center;padding:5px 3px;border:1px solid #425171}.hu-air-compact .hu-table th{background:#263957;color:#eaf2ff}.hu-air-compact .hu-air-row{background:#52316e;color:white;font-weight:800}.hu-air-compact .hu-air-row td{color:white}.hu-air-compact .user-link{display:inline-flex;align-items:center;justify-content:center}
+
+/* Plan vs Real */
+.plan-site{padding:16px 0 24px;border-bottom:1px solid #d9e2ef}
+.plan-site h3{text-align:center;font-size:1.25rem;margin:8px 0}
+.plan-site>.muted{text-align:center}
+.plan-site .kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr));margin:14px 0}
+.plan-chart{max-width:950px;margin:14px auto}
+.plan-legend{text-align:center;font-weight:800;margin:6px}
+.plan-legend span{margin:0 12px}
+.plan-table-wrap{overflow-x:auto}
+.plan-table{width:100%;text-align:center}
+.plan-table th,.plan-table td{text-align:center;vertical-align:middle}
+.plan-cell{width:68px;min-width:56px;padding:6px 4px;text-align:center;font-weight:700;border:1px solid #a9b8ce;border-radius:5px}
+@media(max-width:800px){.plan-site .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-table{min-width:900px}}
