@@ -79,7 +79,9 @@ function huInhubMini(site){
  const bipeado=t?(t.by?.length?t.by.reduce((sum,h,i)=>sum+(i>=startHour?Number(h.tot||0):0),0):t.totalConPost):null;
  const last=t?.maxInTs||r?.lastTs||null;
  const clock=last?new Date(last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'—';
- const hourly=r?.currentHourPackages??null;
+ const target=state.config.speedTargetTime?.[site]||'22:00';
+ const remaining=hoursUntil(last,target);
+ const hourly=fc&&bipeado!==null&&remaining>0?Math.max(0,fc-bipeado)/remaining:null;
  const velocity=tmsHourlyVelocity(t);
  const val=n=>n===null?'—':nf.format(Math.round(n));
  const percentage=n=>fc&&n!==null?pf.format(pct(n,fc))+'%':'—';
@@ -89,7 +91,7 @@ function huInhubMini(site){
  row('Arribado',arrived,percentage(arrived))+
  row('Bipeado Inhub',bipeado,percentage(bipeado))+
  row('Arribado − Bipeado',arrived!==null&&bipeado!==null?arrived-bipeado:null,arrived!==null&&bipeado!==null?percentage(arrived-bipeado):'—')+
- row('Descarga x hora necesaria',Number.isFinite(hourly)?hourly:null,Number.isFinite(hourly)?percentage(hourly):'—')+
+ row('Descarga x hora necesaria (hasta '+target+')',Number.isFinite(hourly)?hourly:null,Number.isFinite(hourly)?percentage(hourly):'—')+
  row('Proyectado − Bipeado',fc&&bipeado!==null?fc-bipeado:null,fc&&bipeado!==null?percentage(fc-bipeado):'—')+
  row('Velocidad real (pza/h)',velocity,'—')+'</table><small>Arribado: '+(r?'Reporte de registros':a?'Arribos':'sin fuente')+' · Bipeado: TMS Inbound Date Included · velocidad: TMS (piezas de la hora actual / minutos desde HH:00). Los datos no disponibles se muestran como —.</small></div>';
 }
