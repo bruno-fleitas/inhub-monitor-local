@@ -566,7 +566,7 @@ function huDashboard(site,originalT){
         <h3>Armado de HU · General (sin MELI Air)</h3>
         <div class="hu-scroll hu-cpt-full"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>% Share</th><th>Users activos</th></tr>
         ${rows.map(x=>{const a=huPct(x);return `<tr><td>${x.cpt}</td><td>${nf.format(x.etiquetado)}</td><td>${nf.format(x.abierto)}</td><td>${nf.format(x.cerrado)}</td><td class="hu-pend">${nf.format(x.pendiente)}</td><td><span class="hu-pill ${huTone(a,cfg.objective)}">${huPercent2(a)}%</span></td><td>${huPercent2(tot.etiquetado?pct(x.etiquetado,tot.etiquetado):0)}%</td><td>${huUserButton([...x.users].map(user=>({user,last:(huActiveUsers(site,t).find(a=>a.user===user)?.last||null)})),'CPT '+x.cpt+' · conectados')}</td></tr>`}).join('')}
-        <tr class="total"><td>Total</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td>${huPercent2(avance)}%</td><td>100,00%</td><td>${huUserButton([...new Map(huActiveUsers(site,t).map(a=>[a.user,{user:a.user,last:a.last}])).values()],'Total · conectados')}</td></tr></table></div>
+        <tr class="total"><td>Total</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td>${huPercent2(avance)}%</td><td>100,00%</td><td>${huUserButton(cfg.connectedMode==='byCpt'?rows.flatMap(x=>[...x.users].map(user=>({user,last:activeUsers.find(a=>a.user===user)?.last||null,cpt:x.cpt}))):[...new Map(activeUsers.map(a=>[a.user,{user:a.user,last:a.last}])).values()],cfg.connectedMode==='byCpt'?'Total · conectados por CPT':'Total · conectados únicos')}</td></tr></table></div>
       </div>
       <div class="hu-right">
         <h3>Datos operativos</h3>
@@ -641,16 +641,16 @@ function huCptTracking(site,t){
 }
 function huUserButton(list,label){
   const n=list?.length||0;if(!n)return '<span class="user-zero">0</span>';
-  const payload=encodeURIComponent(JSON.stringify(list.map(x=>({user:x.user,last:x.last}))));
+  const payload=encodeURIComponent(JSON.stringify(list.map(x=>({user:x.user,last:x.last,cpt:x.cpt}))));
   return `<button type="button" class="user-link" data-user-list="${payload}" data-user-label="${esc(label)}">${nf.format(n)}</button>`;
 }
 function bindHuUserClicks(){
   document.querySelectorAll('[data-user-list]').forEach(btn=>btn.onclick=e=>{
     e.preventDefault();e.stopPropagation();
     let list=[];try{list=JSON.parse(decodeURIComponent(btn.dataset.userList||''))}catch{}
-    const rows=list.map(x=>`<tr><td>${esc(x.user)}</td><td>${x.last?new Date(x.last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-'}</td></tr>`).join('');
+    const rows=list.map(x=>`<tr><td>${esc(x.user)}</td><td>${x.cpt==null?'-':esc(x.cpt)}</td><td>${x.last?new Date(x.last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'-'}</td></tr>`).join('');
     const modal=document.createElement('div');modal.className='user-modal';
-    modal.innerHTML=`<div class="user-modal-card"><div class="user-modal-head"><div><h3>${esc(btn.dataset.userLabel||'Usuarios conectados')}</h3><small>${nf.format(list.length)} usuarios activos según la ventana configurada</small></div><button type="button" class="user-close">×</button></div><div class="user-modal-body"><table class="hu-table compact"><tr><th>Usuario</th><th>Última actividad</th></tr>${rows||'<tr><td colspan="2">Sin usuarios activos.</td></tr>'}</table></div></div>`;
+    modal.innerHTML=`<div class="user-modal-card"><div class="user-modal-head"><div><h3>${esc(btn.dataset.userLabel||'Usuarios conectados')}</h3><small>${nf.format(list.length)} ${list.some(x=>x.cpt!=null)?'registros por CPT':'usuarios únicos'} según la ventana configurada</small></div><button type="button" class="user-close">×</button></div><div class="user-modal-body"><table class="hu-table compact"><tr><th>Usuario</th><th>CPT</th><th>Última actividad</th></tr>${rows||'<tr><td colspan="3">Sin usuarios activos.</td></tr>'}</table></div></div>`;
     document.body.appendChild(modal);
     const close=()=>modal.remove();modal.querySelector('.user-close').onclick=close;modal.onclick=ev=>{if(ev.target===modal)close()};document.addEventListener('keydown',function escClose(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',escClose)}});
   });
