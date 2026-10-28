@@ -12,7 +12,8 @@
     <nav>
       <button class="nav active" data-view="resumen">Resumen ejecutivo</button>
       <button class="nav" data-view="operacion">Operación</button>
-      <button class="nav" data-view="hu">Control HU</button>
+      <button class="nav" data-view="hu-soldati">Control HU · Soldati</button>
+      <button class="nav" data-view="hu-echeverria">Control HU · Echeverría</button>
       <button class="nav" data-view="curvas">Curvas · Vehículos y paquetes</button>
       <button class="nav" data-view="plan">Plan vs Real · Vehículos</button>
       <button class="nav" data-view="huplan">Plan objetivo · HU</button>
@@ -82,7 +83,8 @@
     </section>
 
     <section id="view-operacion" class="view"><article class="card"><h2>Operación</h2><div id="operationView" class="empty">Los resultados aparecerán acá.</div></article></section>
-    <section id="view-hu" class="view"><div id="huView" class="empty">Procesá un TMS para ver el control de HU.</div></section>
+    <section id="view-hu-soldati" class="view"><div id="huViewSoldati" class="empty">Procesá el TMS de Soldati para ver su Control HU.</div></section>
+    <section id="view-hu-echeverria" class="view"><div id="huViewEcheverria" class="empty">Procesá el TMS de Echeverría para ver su Control HU.</div></section>
     <section id="view-curvas" class="view"><article class="card"><h2>Curvas · Vehículos y paquetes</h2><div id="curvesView" class="empty">Los resultados aparecerán acá.</div></article></section>
     <section id="view-plan" class="view"><article class="card"><h2>Plan vs Real · Vehículos</h2><div id="planView"></div></article></section>
     <section id="view-huplan" class="view"><article class="card"><h2>Plan objetivo · HU</h2><p class="muted">Objetivo de avance y hora configurados desde Control HU. Comparación de piezas requeridas y procesadas por hora, por site.</p><div id="huplanView"></div></article></section>
@@ -95,6 +97,6 @@
     <section id="view-config" class="view"><article class="card"><h2>Configuración</h2><div id="configView" class="empty">Configuración de SubCA, CPT y reglas operativas.</div></article></section>
   </main>
 
-  <script type="module" src="./js/app.js?v=20261028-dot-v1"></script>
+  <script type="module" src="./js/app.js?v=20261028-hu-sites-v2"></script>
 </body>
 </html>
