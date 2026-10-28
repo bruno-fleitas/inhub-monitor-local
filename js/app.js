@@ -21,7 +21,7 @@ function progress(p,msg){$('progress').classList.remove('hidden');$('progressBar
 function onceWorker(url,payload,onp){return new Promise((res,rej)=>{const w=new Worker(url);w.onmessage=e=>{const m=e.data||{};if(m.type==='PROGRESS')onp?.(m.progress||0);if(m.type==='RESULT'){w.terminate();res(m.result)}if(m.type==='ERROR'){w.terminate();rej(new Error(m.message))}};w.onerror=e=>{w.terminate();rej(new Error(e.message||'Worker error'))};w.postMessage(payload)})}
 const runT=(site,onp)=>state.sites[site].files.tms?onceWorker('./workers/tms.worker.js?v=20261028-units-2',{type:'PROCESS_TMS',file:state.sites[site].files.tms,labFile:state.sites[site].files.labelless||null,config:{selectedDate:state.config.analysisDate,cptStart:state.config.cptStart[site],huStartHour:huConfig(site).huStartHour??7,huCutoff:huConfig(site).huCutoff||null}},onp):Promise.resolve(null);
 const runA=(site,onp)=>state.sites[site].files.arrivals?onceWorker('./workers/arrivals.worker.js',{type:'PROCESS_ARRIVALS',file:state.sites[site].files.arrivals,day:state.config.analysisDate},onp):Promise.resolve(null);
-const runR=(site,onp)=>state.sites[site].files.registros?onceWorker('./workers/registros.worker.js',{type:'PROCESS_REGISTROS',file:state.sites[site].files.registros,day:state.config.analysisDate},onp):Promise.resolve(null);
+const runR=(site,onp)=>state.sites[site].files.registros?onceWorker('./workers/registros.worker.js?v=20261028-types-hourly-1',{type:'PROCESS_REGISTROS',file:state.sites[site].files.registros,day:state.config.analysisDate},onp):Promise.resolve(null);
 const runL=(site,onp)=>state.sites[site].files.labelless?onceWorker('./workers/labelless.worker.js',{type:'PROCESS_LAB',file:state.sites[site].files.labelless},onp):Promise.resolve(null);
 
 function jw(site){return jworkers[site]||(jworkers[site]=new Worker('./workers/jornales.worker.js'))}
@@ -355,7 +355,26 @@ function vehicleSprMatrix(site){
  const vt=r?.vehicleTypes||null;
  const types=vt?[['Chasis','chasis'],['Camioneta (incluye MELI)','camioneta'],['Semi','semi'],['Otros','otro']].map(([label,key])=>({label,veh:Number(vt[key]?.veh||0)})):null;
  const rows=[['Vehículos recibidos',vehValues,fmt,vehicles?fmt(vTotal):'—'],['Paquetes ED',edValues,fmt,ed?fmt(eTotal):'—'],['SPR · pza/veh.',sprValues,spr,vehicles&&ed&&vTotal?spr(eTotal/vTotal):'—']];
- const typeSummary=types?'<div class="vehicle-type-inline"><strong>Vehículos por tipo · Easy Docking</strong><div class="vehicle-type-inline-grid">'+types.map(x=>'<div><span>'+esc(x.label)+'</span><b>'+nf.format(x.veh)+'</b></div>').join('')+'</div><small>Camioneta MELI se incluye en Camioneta. Estos totales corresponden al archivo completo, no al filtro horario.</small></div>':(a?'<div class="vehicle-type-inline"><strong>Vehículos por tipo · Arribos</strong><div class="vehicle-type-inline-grid">'+[['Chasis',a.chasis||0],['Camioneta (incluye MELI)',a.camioneta||0],['Semi',a.semi||0]].map(x=>'<div><span>'+x[0]+'</span><b>'+nf.format(x[1])+'</b></div>').join('')+'</div><small>Totales del archivo de Arribos.</small></div>':'');
+ const typeSource=a?.h||r?.vehiclesByHour||null;
+ const typeRows=[];
+ if(typeSource){
+  const defs=[['Chasis','chasis'],['Camioneta','camioneta'],['Semi','semi']];
+  for(const [label,key] of defs){
+   const hourly=hours.map(h=>Number(typeSource[h]?.[key]||0));
+   const total=hourly.reduce((sum,n)=>sum+n,0);
+   const packHourly=r?.packagesByTypeHour?.[key]||null;
+   let accumulated=0;
+   const accumulatedValues=hourly.map(n=>(accumulated+=n));
+   const percentValues=accumulatedValues.map(n=>total?100*n/total:0);
+   const sprValues=hours.map((h,i)=>packHourly&&hourly[i]>0?Number(packHourly[h]||0)/hourly[i]:null);
+   const sumP=packHourly?hours.reduce((sum,h)=>sum+Number(packHourly[h]||0),0):0;
+   typeRows.push([label+' · arribados',hourly,fmt,fmt(total)]);
+   typeRows.push([label+' · acumulado',accumulatedValues,fmt,fmt(total)]);
+   typeRows.push([label+' · % acumulado',percentValues,x=>x.toLocaleString('es-AR',{maximumFractionDigits:1})+'%',total?'100%':'0%']);
+   typeRows.push([label+' · SPR',sprValues,spr,packHourly&&total?spr(sumP/total):'—']);
+  }
+ }
+ const typeSummary=typeRows.length?'<div class="vehicle-type-hourly"><h4>Vehículos por tipo · arribos, acumulado, % y SPR</h4><p class="muted">Camioneta MELI incluida en Camioneta. Acumulados y porcentajes sobre el rango horario mostrado. SPR por tipo solo cuando hay paquetes de Easy Docking por tipo; con Arribos sin ese desglose se muestra —.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Vehículo / Indicador</th>'+hours.map(h=>'<th>'+String(h).padStart(2,'0')+':00</th>').join('')+'<th>TOTAL</th></tr></thead><tbody>'+typeRows.map(([label,values,format,total])=>'<tr><th>'+esc(label)+'</th>'+values.map(x=>'<td>'+format(x)+'</td>').join('')+'<td class="matrix-total">'+total+'</td></tr>').join('')+'</tbody></table></div></div>':'';
  return '<section class="hour-matrix vehicle-spr-matrix"><h3>Vehículos y SPR por hora</h3><p class="muted">Vehículos: Arribos o registros únicos de Easy Docking (si no hay Arribos). Paquetes: reporte ED. SPR = paquetes ED / vehículos de la misma hora. Sin vehículos disponibles se muestra —; no se usan estimaciones.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>'+hours.map(h=>'<th>'+String(h).padStart(2,'0')+':00</th>').join('')+'<th>TOTAL</th></tr></thead><tbody>'+rows.map(([label,values,format,total])=>'<tr><th>'+label+'</th>'+values.map(x=>'<td>'+format(x)+'</td>').join('')+'<td class="matrix-total">'+total+'</td></tr>').join('')+'</tbody></table></div>'+typeSummary+'</section>';
 }
 function huGoalView(){const host=$('huplanView');if(!host)return;host.innerHTML=['soldati','echeverria'].map(site=>'<section class="plan-site"><h3>'+names[site]+'</h3>'+huHourlyGoalPlan(site)+'</section>').join('')}
