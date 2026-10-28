@@ -87,6 +87,8 @@ function dockDashboard(){
  const total=docks.reduce((n,x)=>n+x.count,0),hours=first===null?0:(last-first)/3600000;
  const clock=ms=>new Date(ms).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
  const velocity=(n,h)=>h>0?nf.format(Math.round(n/h)):'—';
+ const groupSummary=(label,items)=>{const count=items.reduce((n,x)=>n+x.count,0),a=items.length?Math.min(...items.map(x=>x.first)):null,b=items.length?Math.max(...items.map(x=>x.last)):null,mins=a===null?0:(b-a)/60000;return '<div class="dock-group-summary"><div><span>'+label+' · paquetes</span><b>'+nf.format(count)+'</b></div><div><span>Docks activos</span><b>'+nf.format(items.length)+'</b></div><div><span>Velocidad pza/min</span><b>'+(mins>0?pf.format(count/mins):'—')+'</b></div><div><span>Velocidad pza/h</span><b>'+(mins>0?nf.format(Math.round(count*60/mins)):'—')+'</b></div><div><span>Primer / último bipeo</span><b>'+(a!==null?clock(a)+' / '+clock(b):'—')+'</b></div></div>'};
+ const camionetas=docks.filter(x=>Number.isFinite(x.n)&&x.n>=threshold),chasis=docks.filter(x=>Number.isFinite(x.n)&&x.n<threshold);
  const tiles=(items)=>items.length?'<div class="dock-tiles">'+items.sort((a,b)=>a.n-b.n).map(x=>{
  const users=Object.entries(x.users||{}).sort((a,b)=>b[1]-a[1]);
  const tip=users.length?users.map(([u,n])=>u+' · '+nf.format(n)+' bipeos').join(' | '):'Sin usuario Inbound informado';
@@ -94,8 +96,8 @@ function dockDashboard(){
  }).join('')+'</div>':'<p class="muted">Sin docks registrados para esta categoría.</p>';
  html+=`<article class="card"><h2>${names[site]} · Productividad por dársena</h2><div class="dock-toolbar"><label>Desde dock N.º se considera Camioneta <input class="dock-limit" data-dock-site="${site}" type="number" min="0" step="1" value="${threshold}"></label><small>Dock ${threshold} y superiores: Camionetas · inferiores: Chasis. Se configura por site.</small></div>
  <div class="dock-summary"><div><span>Paquetes bipeados</span><b>${nf.format(total)}</b></div><div><span>Velocidad general / hora</span><b>${velocity(total,hours)}</b></div><div><span>Velocidad general / minuto</span><b>${hours>0?pf.format(total/(hours*60)):'—'}</b></div><div><span>Docks con actividad</span><b>${nf.format(docks.length)}</b></div><div><span>Primer / último bipeo</span><b>${first!==null?clock(first)+' / '+clock(last):'—'}</b></div></div>
- <h3>Camionetas · ${docks.filter(x=>Number.isFinite(x.n)&&x.n>=threshold).length} docks</h3>${tiles(docks.filter(x=>Number.isFinite(x.n)&&x.n>=threshold))}
- <h3>Chasis · ${docks.filter(x=>Number.isFinite(x.n)&&x.n<threshold).length} docks</h3>${tiles(docks.filter(x=>Number.isFinite(x.n)&&x.n<threshold))}
+ <h3>Camionetas · ${camionetas.length} docks</h3>${groupSummary("Camionetas",camionetas)}${tiles(camionetas)}
+ <h3>Chasis · ${chasis.length} docks</h3>${groupSummary("Chasis",chasis)}${tiles(chasis)}
  ${docks.some(x=>!Number.isFinite(x.n))?'<p class="muted">Existen docks con identificadores no numéricos que no se pueden clasificar por el umbral.</p>':''}
  <p class="muted">Velocidades calculadas entre primer y último bipeo TMS, incluyendo pausas. La velocidad general usa el intervalo global; no es la suma de velocidades individuales. Los usuarios son los identificados en Inbound User ID, no necesariamente quienes están conectados ahora.</p></article>`;
  }
