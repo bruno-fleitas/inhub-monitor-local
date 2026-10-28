@@ -690,7 +690,7 @@ function dotData(site,t){
  const cfg=dotTarget(site),src=t.dotRows||[],master=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));
  const statuses=[...new Set(src.map(x=>x.status).filter(Boolean))].sort(),subcas=[...new Set(src.map(x=>x.subca).filter(Boolean))].sort();
  const reference=state.config.analysisDate||null,base=reference|| (src.find(x=>x.inTs!=null)?dotDay(src.find(x=>x.inTs!=null).inTs):null);
- const start=dotTime(base,cfg.start),end=dotTime(base,cfg.end,1),latest=Math.max(0,t.maxInTs||0,t.hu?.maxOutTs||0,...src.filter(x=>x.dispatchTs!=null).map(x=>x.dispatchTs));
+ const start=dotTime(base,cfg.start),end=dotTime(base,cfg.end,1);let latest=Math.max(0,t.maxInTs||0,t.hu?.maxOutTs||0);for(const x of src){if(x.dispatchTs!=null&&x.dispatchTs>latest)latest=x.dispatchTs}
  const now=latest||Date.now(),groups=new Map(),huMap=new Map();let missingMaster=0;
  for(const x of src){
   if(x.inTs==null||start==null||x.inTs<start||x.inTs>end)continue;
