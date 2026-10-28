@@ -64,6 +64,27 @@ function speedPanel(site){
     <div class="speed-note">Registros: solo CHOFER informado · TIPO DE OPERACION = Descarga · Accion = add · se excluyen horas 01 y 02.</div>
   </div>`;
 }
+function huInhubMini(site){
+ const d=state.sites[site],t=d.tms,r=d.registros,a=d.arrivals;
+ const fc=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
+ const arrived=r?.packages??a?.totalShip??null;
+ const bipeado=t?.totalConPost??null;
+ const last=t?.maxInTs||r?.lastTs||null;
+ const clock=last?new Date(last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'—';
+ const hourly=r?.currentHourPackages??null;
+ const velocity=r?.currentSpeed??null;
+ const val=n=>n===null?'—':nf.format(Math.round(n));
+ const percentage=n=>fc&&n!==null?pf.format(pct(n,fc))+'%':'—';
+ const row=(name,n,p)=>'<tr><td>'+name+'</td><td>'+val(n)+'</td><td>'+p+'</td></tr>';
+ return '<div class="hu-inhub-mini"><h3>Resumen Inhub · Descarga</h3><div class="hu-inhub-time">Últ. actualización <b>'+clock+'</b></div><table class="hu-table compact"><tr><th>Indicador</th><th>Piezas</th><th>% proy.</th></tr>'+
+ row('Proyectado',fc||null,fc?'100,0%':'—')+
+ row('Arribado',arrived,percentage(arrived))+
+ row('Bipeado Inhub',bipeado,percentage(bipeado))+
+ row('Arribado − Bipeado',arrived!==null&&bipeado!==null?arrived-bipeado:null,arrived!==null&&bipeado!==null?percentage(arrived-bipeado):'—')+
+ row('Descarga hora actual',hourly,percentage(hourly))+
+ row('Proyectado − Bipeado',fc&&bipeado!==null?fc-bipeado:null,fc&&bipeado!==null?percentage(fc-bipeado):'—')+
+ row('Velocidad real (pza/h)',velocity,'—')+'</table><small>Arribado: '+(r?'Reporte de registros':a?'Arribos':'sin fuente')+' · Bipeado: TMS Inbound Date Included · velocidad: reporte de registros. Los datos no disponibles se muestran como —.</small></div>';
+}
 function bindSpeedTargets(){
   document.querySelectorAll('[data-speed-target]').forEach(el=>el.onchange=()=>{
     state.config.speedTargetTime[el.dataset.speedTarget]=el.value||'22:00';
@@ -224,7 +245,7 @@ function planVsReal(){
  host.querySelectorAll('[data-clear-plan]').forEach(btn=>btn.onclick=()=>{localStorage.removeItem(storeKey(btn.dataset.clearPlan));planVsReal()});
 }
 
-function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros)continue;h+=`<article class="card"><h2>${names[site]}</h2>${flowCurve(d,start)}${dockProductivity(d.tms)}<div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}${vehiclePie(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3>${tmsTable(d.tms,start)}<h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
+function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros)continue;h+=`<article class="card"><h2>${names[site]}</h2>${flowCurve(d,start)}${d.tms?.hu?`<section class="hu-hourly-moved"><h3>Bipeo HU por hora · ${names[site]}</h3>${huHourlyTable(huSeparateAir(d.tms).normal)}</section>`:""}${dockProductivity(d.tms)}<div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}${vehiclePie(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3>${tmsTable(d.tms,start)}<h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
 function mix(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(!t)continue;const pure=Math.max(0,t.vol-t.big-t.sb),base=Math.max(0,t.totalConPost-t.big-t.sb);h+=`<article class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div></div>${packagePie(t)}${tmsTable(t,start)}</article>`} $('mixView').innerHTML=h||'<article class="card empty">Sin TMS.</article>'}
 
 function cfg(site){const t=state.sites[site].tms;if(!t)return null;const mp=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));const groups=t.subcaGroups.map(g=>{const x=mp.get(String(g.subca).trim().toUpperCase());return{...g,ola:x?.ola||'',cpt:x?.cpt??'',indicador:x?.indicador||''}});return{total:t.totalConPost,groups,unknown:groups.filter(g=>g.subca!=='SIN SUBCA'&&!mp.has(String(g.subca).trim().toUpperCase()))}}
@@ -416,7 +437,7 @@ function huDashboard(site,originalT){
           <tr><td>producción real/h</td><td>${nf.format(realProd)}</td></tr>
           <tr><td>capacidad hasta ${cfg.targetTime}</td><td>${nf.format(Math.round(capacity))}</td></tr>
         </table></div>
-        <h3>Bipeo HU por hora</h3>${huHourlyTable(t)}
+        ${huInhubMini(site)}
       </div>
     </div>
     ${huAirPanel(site,originalT,true)}
