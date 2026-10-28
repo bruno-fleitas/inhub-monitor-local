@@ -326,3 +326,20 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .plan-table th,.plan-table td{text-align:center;vertical-align:middle}
 .plan-cell{width:68px;min-width:56px;padding:6px 4px;text-align:center;font-weight:700;border:1px solid #a9b8ce;border-radius:5px}
 @media(max-width:800px){.plan-site .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.plan-table{min-width:900px}}
+
+/* Compact operational matrix: full hourly detail without stretching the page */
+.hour-matrix{margin:12px 0 20px;min-width:0}
+.hour-matrix h3{margin:0 0 5px;font-size:16px}
+.hour-matrix .muted{font-size:11px;line-height:1.4;margin:4px 0 9px}
+.hour-matrix-scroll{max-width:100%;overflow-x:auto;border:1px solid #344968;border-radius:9px}
+.hour-matrix table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:11px;font-variant-numeric:tabular-nums}
+.hour-matrix th,.hour-matrix td{padding:7px 9px;text-align:center;white-space:nowrap;border-right:1px solid #344968;border-bottom:1px solid #344968}
+.hour-matrix thead th{position:sticky;top:0;background:#253754;color:#eaf2ff;font-weight:800}
+.hour-matrix th:first-child{position:sticky;left:0;z-index:2;min-width:138px;text-align:left;background:#253754;color:#eaf2ff}
+.hour-matrix tbody tr:nth-child(odd) td{background:#17263d}
+.hour-matrix tbody tr:nth-child(even) td{background:#111e32}
+.hour-matrix tbody tr:hover td{background:#29405d}
+.hour-matrix .matrix-total{background:#263d59!important;color:#fff;font-weight:850}
+.hour-matrix tbody tr:last-child td{color:#7be3d4;font-weight:750}
+#curvesView .cols .scroll table th,#curvesView .cols .scroll table td{padding:5px 7px;font-size:11px}
+#curvesView .cols h3,#curvesView .cols h4{margin:9px 0 6px}
