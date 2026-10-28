@@ -158,6 +158,40 @@ function dockProductivity(t){
  return `<div class="flow-curve"><h3>Productividad por dock · TMS</h3><p class="muted">Velocidad = paquetes bipeados / tiempo entre primer y último Inbound Date Included del dock. No representa necesariamente tiempo activo continuo.</p><div class="scroll"><table><tr><th>Dock</th><th>Paquetes</th><th>Primer bipeo</th><th>Último bipeo</th><th>Duración</th><th>Productividad (pza/h)</th></tr>${rows.map(x=>`<tr><td>${esc(x.dock)}</td><td>${nf.format(x.count)}</td><td>${clock(x.first)}</td><td>${clock(x.last)}</td><td>${x.hours>0?pf.format(x.hours)+' h':'—'}</td><td><b>${x.rate!==null?nf.format(Math.round(x.rate)):'No calculable'}</b></td></tr>`).join('')}</table></div></div>`;
 }
 
+
+function huHourlyGoalPlan(site){
+ const t=state.sites[site].tms;if(!t?.hu)return '<p>Procesá TMS para ver el avance HU.</p>';
+ const cfg=huConfig(site),cut=cfg.huCutoff||'',max=t.hu.maxOutTs;
+ const forecast=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
+ const targetPct=Math.max(0,Math.min(100,Number(cfg.targetPct??65)));
+ if(!forecast)return '<p class="muted">Cargá el proyectado de '+names[site]+' para calcular la curva objetivo HU.</p>';
+ const normal=huSeparateAir(t).normal,tot=normal.hu.totals;
+ const processed=tot.abierto+tot.cerrado,goal=Math.ceil(forecast*targetPct/100);
+ const [th,tm]=String(cfg.targetTime||'22:00').split(':').map(Number);
+ const now=max?new Date(max):new Date(),end=new Date(now);end.setHours(th||0,tm||0,0,0);if(end<=now)end.setDate(end.getDate()+1);
+ const start=new Date(now);start.setMinutes(0,0,0);
+ const hours=[];for(let d=new Date(start);d<=end&&hours.length<24;d.setHours(d.getHours()+1))hours.push({date:new Date(d),hour:d.getHours()});
+ const remaining=Math.max(0,goal-processed),duration=Math.max(1,(end-now)/3600000);
+ const hourly=(t.hu.byHour||[]),airHourly=(t.meli?.by||{});
+ // TMS HU byHour may include MELI Air: subtract MELI processed hourly only when available.
+ const rows=hours.map((x,i)=>{
+  const raw=Number(hourly[x.hour]||0),air=Number(airHourly[x.hour]?.proc||0);
+  const real=x.date<=now?Math.max(0,raw-air):null;
+  const hoursElapsed=Math.max(0,Math.min(duration,(x.date.getTime()+3600000-now.getTime())/3600000));
+  const objective=processed+Math.round(remaining*hoursElapsed/duration);
+  return {...x,real,objective,needed:Math.max(0,objective-processed)};
+ });
+ const fmt=n=>nf.format(n);
+ const peak=Math.max(goal,processed,...rows.map(x=>x.objective),1);
+ const point=(i,n)=>[48+i*(780/Math.max(1,rows.length-1)),185-n/peak*155];
+ const points=rows.map((x,i)=>point(i,x.objective).join(',')).join(' ');
+ const labels=rows.map((x,i)=>{const [px,py]=point(i,x.objective);return '<text x="'+px+'" y="'+Math.max(12,py-9)+'" fill="#ffbf66" font-size="11" text-anchor="middle">'+fmt(x.objective)+'</text><text x="'+px+'" y="211" fill="#c5d4e7" font-size="11" text-anchor="middle">'+String(x.hour).padStart(2,'0')+'</text>'}).join('');
+ const actual=rows.map((x,i)=>x.real==null?'':{i,value:x.real}).filter(Boolean);
+ const realPoints=actual.map(x=>point(x.i,x.value).join(',')).join(' ');
+ const realLabels=actual.map(x=>{const [px,py]=point(x.i,x.value);return '<text x="'+px+'" y="'+Math.min(193,py+15)+'" fill="#64e4d6" font-size="11" text-anchor="middle">'+fmt(x.value)+'</text>'}).join('');
+ return '<div class="kpi-grid"><div class="kpi"><span>Proyectado</span><b>'+fmt(forecast)+'</b></div><div class="kpi"><span>Objetivo '+huPercent2(targetPct)+'%</span><b>'+fmt(goal)+'</b></div><div class="kpi"><span>HU procesado actual (sin MELI Air)</span><b>'+fmt(processed)+'</b></div><div class="kpi"><span>Faltan para objetivo</span><b>'+fmt(remaining)+'</b></div></div><p class="muted">La línea naranja indica el acumulado necesario desde la última actualización hasta '+cfg.targetTime+'. La línea verde representa piezas HU reales por hora, sin MELI Air cuando el desglose horario está disponible. Los valores tienen escalas diferentes: acumulado vs horario.</p><div class="plan-chart"><svg viewBox="0 0 860 230" style="width:100%;background:#111d30;border-radius:12px"><line x1="40" y1="185" x2="840" y2="185" stroke="#66758d"/><polyline points="'+points+'" stroke="#ffbf66" fill="none" stroke-width="3"/>'+ (actual.length>1?'<polyline points="'+realPoints+'" stroke="#48d6b7" fill="none" stroke-width="3"/>':'')+labels+realLabels+'</svg></div><div class="plan-table-wrap"><table class="hu-table plan-table"><tr><th>Hora</th><th>Meta acumulada</th><th>HU real en esa hora</th><th>Necesario adicional acumulado</th></tr>'+rows.map(x=>'<tr><td>'+String(x.hour).padStart(2,'0')+':00</td><td>'+fmt(x.objective)+'</td><td>'+(x.real===null?'—':fmt(x.real))+'</td><td>'+fmt(x.needed)+'</td></tr>').join('')+'</table></div>';
+}
+
 function planVsReal(){
  const host=$('planView');if(!host)return;
  const hours=Array.from({length:14},(_,i)=>i+9);
@@ -176,10 +210,10 @@ function planVsReal(){
   const fmt=v=>nf.format(v);
   const max=Math.max(1,...hourRows.flatMap(x=>[x.pt,x.rt]));
   const pts=key=>hourRows.map((x,i)=>[35+i*53,180-(x[key]/max)*155].join(',')).join(' ');
-  const chart='<svg viewBox="0 0 790 215" role="img" aria-label="Líneas de vehículos planificados y reales por hora" style="width:100%;max-height:270px;background:#111d30;border-radius:12px"><line x1="30" y1="180" x2="755" y2="180" stroke="#6d7b91"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="'+pts('pt')+'"/><polyline fill="none" stroke="#3bc8ba" stroke-width="3" points="'+pts('rt')+'"/>'+hourRows.map((x,i)=>'<text x="'+(35+i*53)+'" y="201" fill="#e4edf8" font-size="12" text-anchor="middle">'+String(x.hour).padStart(2,'0')+'</text>').join('')+'</svg>';
+  const chart='<svg viewBox="0 0 790 235" role="img" aria-label="Líneas de vehículos planificados y reales por hora" style="width:100%;max-height:270px;background:#111d30;border-radius:12px"><line x1="30" y1="180" x2="755" y2="180" stroke="#6d7b91"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="'+pts('pt')+'"/><polyline fill="none" stroke="#3bc8ba" stroke-width="3" points="'+pts('rt')+'"/>'+hourRows.map((x,i)=>'<text x="'+(35+i*53)+'" y="201" fill="#e4edf8" font-size="12" text-anchor="middle">'+String(x.hour).padStart(2,'0')+'</text>').join('')+'<g font-size="10" font-weight="700" text-anchor="middle">'+hourRows.map((x,i)=>'<text x="'+(35+i*53)+'" y="'+Math.max(12,174-(x.pt/max)*155)+'" fill="#ffbc53">'+x.pt+'</text><text x="'+(35+i*53)+'" y="'+Math.min(177,193-(x.rt/max)*155)+'" fill="#6ce4d6">'+x.rt+'</text>').join('')+'</g></svg>';
   html+='<section class="plan-site" data-plan-site="'+site+'"><h3>'+names[site]+'</h3><p class="muted">Editá el plan por hora. El real se actualiza desde Arribos. Camioneta incluye Camioneta MELI.</p><div class="kpi-grid"><div class="kpi"><span>Plan</span><b>'+fmt(totals.plan)+'</b></div><div class="kpi"><span>Real</span><b>'+ (a?fmt(totals.real):'Sin arribos')+'</b></div><div class="kpi"><span>Diferencia</span><b>'+(a?fmt(totals.real-totals.plan):'—')+'</b></div><div class="kpi"><span>Cumplimiento</span><b>'+(a&&totals.plan?huPercent2(100*totals.real/totals.plan)+'%':'—')+'</b></div></div><div class="plan-chart"><div class="plan-legend"><span style="color:#f5a623">● Plan</span> <span style="color:#3bc8ba">● Real</span></div>'+chart+'</div><div class="plan-table-wrap"><table class="hu-table plan-table"><thead><tr><th rowspan="2">Hora</th><th colspan="4">Plan editable</th><th colspan="4">Real automático</th><th rowspan="2">Diferencia</th></tr><tr>'+types.map(x=>'<th>'+x[1]+'</th>').join('')+'<th>Total</th>'+types.map(x=>'<th>'+x[1]+'</th>').join('')+'<th>Total</th></tr></thead><tbody>'+hourRows.map(x=>'<tr><td>'+String(x.hour).padStart(2,'0')+':00</td>'+types.map(([key])=>'<td><input class="plan-cell" type="number" min="0" step="1" data-hour="'+x.hour+'" data-type="'+key+'" value="'+x.p[key]+'"></td>').join('')+'<td><b>'+fmt(x.pt)+'</b></td>'+types.map(([key])=>'<td>'+ (a?fmt(x.real[key]):'—')+'</td>').join('')+'<td><b>'+(a?fmt(x.rt):'—')+'</b></td><td>'+(a?fmt(x.rt-x.pt):'—')+'</td></tr>').join('')+'<tr class="total"><td>Total</td>'+types.map(([key])=>'<td>'+fmt(hourRows.reduce((n,x)=>n+x.p[key],0))+'</td>').join('')+'<td>'+fmt(totals.plan)+'</td>'+types.map(([key])=>'<td>'+(a?fmt(hourRows.reduce((n,x)=>n+x.real[key],0)):'—')+'</td>').join('')+'<td>'+(a?fmt(totals.real):'—')+'</td><td>'+(a?fmt(totals.real-totals.plan):'—')+'</td></tr></tbody></table></div><div class="toolbar"><button class="primary" data-save-plan="'+site+'">Guardar plan y actualizar gráfico</button><button class="secondary" data-clear-plan="'+site+'">Limpiar plan</button></div></section>';
  }
- host.innerHTML=html;
+ host.innerHTML=html+'<article class="card"><h2>Objetivo HU · Plan vs Real</h2>'+['soldati','echeverria'].map(site=>'<section class="plan-site"><h3>'+names[site]+'</h3>'+huHourlyGoalPlan(site)+'</section>').join('')+'</article>';
  host.querySelectorAll('[data-save-plan]').forEach(btn=>btn.onclick=()=>{
   const site=btn.dataset.savePlan,section=host.querySelector('[data-plan-site="'+site+'"]'),plan={};
   section.querySelectorAll('.plan-cell').forEach(input=>{const hour=input.dataset.hour;plan[hour]??={};plan[hour][input.dataset.type]=Math.max(0,Math.floor(Number(input.value)||0))});
