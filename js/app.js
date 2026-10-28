@@ -682,7 +682,7 @@ function huTrackingTable(site,t){
     </details>`).join('')}</div>`;
 }
 
-function dotTarget(site){state.config.dot??={};const c=state.config.dot[site]??={};if(c.objective==null)c.objective=99.55;if(c.start==null)c.start='09:00';if(c.end==null)c.end='13:00';if(c.status==null)c.status='all';if(c.subca==null)c.subca='all';if(c.excludeAir==null)c.excludeAir=false;if(c.detail==null)c.detail='subca';return c}
+function dotTarget(site){state.config.dot??={};const c=state.config.dot[site]??={};if(c.objective==null)c.objective=99.55;if(c.start==null)c.start='09:00';if(c.end==null)c.end='13:00';if(c.status==null)c.status='all';if(c.subca==null)c.subca='all';if(c.excludeAir==null)c.excludeAir=false;if(c.detail==null)c.detail='subca';if(!Array.isArray(c.statuses))c.statuses=[];if(!Array.isArray(c.subcas))c.subcas=[];return c}
 function dotDay(ts){const d=new Date(ts);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
 function dotTime(day,time,plus=0){if(!day||!time)return null;const [y,m,d]=day.split('-').map(Number),[h,min]=time.split(':').map(Number);return new Date(y,m-1,d+plus,h,min||0,0).getTime()}
 function dotCptTime(day,cpt){if(!day||cpt==null)return null;const raw=String(cpt).trim();const m=raw.match(/^(\d{1,2})(?::(\d{2}))?/);if(!m)return null;const h=+m[1],min=+(m[2]||0);if(h>23)return null;return dotTime(day,String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'),h<9?1:0)}
@@ -696,8 +696,8 @@ function dotData(site,t){
   if(x.inTs==null||start==null||x.inTs<start||x.inTs>end)continue;
   const zone=String(x.subca||'').trim(),status=String(x.status||'').trim();
   if(cfg.excludeAir&&/_A$/i.test(zone))continue;
-  if(cfg.status!=='all'&&status!==cfg.status)continue;
-  if(cfg.subca!=='all'&&zone!==cfg.subca)continue;
+  if(cfg.statuses.length&&!cfg.statuses.includes(status))continue;
+  if(cfg.subcas.length&&!cfg.subcas.includes(zone))continue;
   const m=master.get(zone.toUpperCase());if(!m){missingMaster++;continue}
   const deadline=dotCptTime(base,m.cpt);if(deadline==null){missingMaster++;continue}
   const cpt=String(m.cpt),key=cpt+'|'+zone;
@@ -723,8 +723,8 @@ function dotMonitor(site,t){
  '<div class="hu-head-actions" style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0">'+
  '<label>Inicio Inhub <input type="time" data-dot-filter="start" data-site="'+site+'" value="'+cfg.start+'"></label>'+
  '<label>Fin jornada (+1 día) <input type="time" data-dot-filter="end" data-site="'+site+'" value="'+cfg.end+'"></label>'+
- '<label>Hub Status <select data-dot-filter="status" data-site="'+site+'">'+opts(['all',...d.statuses],cfg.status)+'</select></label>'+
- '<label>Labeling Zone / SubCA <select data-dot-filter="subca" data-site="'+site+'">'+opts(['all',...d.subcas],cfg.subca)+'</select></label>'+
+ '<details class="dot-multi"><summary>Hub Status ('+(cfg.statuses.length?cfg.statuses.length+' seleccionados':'Todos')+')</summary><div class="dot-multi-options" style="max-height:260px;overflow:auto;padding:10px;background:#fff;color:#172338;border-radius:8px"><button type="button" data-dot-select-all="statuses" data-site="'+site+'">Todos</button> <button type="button" data-dot-clear="statuses" data-site="'+site+'">Ninguno</button>'+d.statuses.map(x=>'<label style="display:block;padding:4px"><input type="checkbox" data-dot-multi="statuses" data-site="'+site+'" value="'+esc(x)+'" '+(!cfg.statuses.length||cfg.statuses.includes(x)?'checked':'')+'> '+esc(x)+'</label>').join('')+'</div></details>'+
+ '<details class="dot-multi"><summary>Labeling Zone / SubCA ('+(cfg.subcas.length?cfg.subcas.length+' seleccionados':'Todos')+')</summary><div class="dot-multi-options" style="max-height:260px;overflow:auto;padding:10px;background:#fff;color:#172338;border-radius:8px"><button type="button" data-dot-select-all="subcas" data-site="'+site+'">Todos</button> <button type="button" data-dot-clear="subcas" data-site="'+site+'">Ninguno</button>'+d.subcas.map(x=>'<label style="display:block;padding:4px"><input type="checkbox" data-dot-multi="subcas" data-site="'+site+'" value="'+esc(x)+'" '+(!cfg.subcas.length||cfg.subcas.includes(x)?'checked':'')+'> '+esc(x)+'</label>').join('')+'</div></details>'+
  '<label>Excluir MELI Air <input type="checkbox" data-dot-filter="excludeAir" data-site="'+site+'" '+(cfg.excludeAir?'checked':'')+'></label></div>'+
  '<div class="hu-note">Jornada: '+esc(d.base||'sin fecha')+' · Corte de datos: '+(d.latest?new Date(d.latest).toLocaleString('es-AR'):'sin registros')+(d.missingMaster?' · '+nf.format(d.missingMaster)+' registros sin CPT configurado':'')+(!d.hasDispatchField?' · ADVERTENCIA: falta Dispatch Date Finished en el CSV':'')+'</div>'+
  '<div class="hu-status-strip">'+[['DOT',score==null?'Sin datos':pf.format(score)+'%'],['Ingresados',nf.format(v.total)],['On Time',nf.format(v.onTime)],['Delay',nf.format(v.delay)],['Desvío',nf.format(v.deviation)],['Pendiente sin vencer',nf.format(v.pending)],['Despachado / ingresado',v.total?pf.format(100*(v.onTime+v.delay)/v.total)+'%':'-']].map(x=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div>'+
@@ -737,6 +737,9 @@ function dotMonitor(site,t){
 function bindDotControls(){
  document.querySelectorAll('[data-dot-objective]').forEach(el=>el.onchange=()=>{dotTarget(el.dataset.dotObjective).objective=Math.max(0,Math.min(100,Number(el.value)||99.55));huControl()});
  document.querySelectorAll('[data-dot-filter]').forEach(el=>el.onchange=()=>{dotTarget(el.dataset.site)[el.dataset.dotFilter]=el.type==='checkbox'?el.checked:el.value;huControl()});
+ document.querySelectorAll('[data-dot-multi]').forEach(el=>el.onchange=()=>{const site=el.dataset.site,field=el.dataset.dotMulti,c=dotTarget(site);const all=[...document.querySelectorAll('[data-dot-multi="'+field+'"][data-site="'+site+'"]')];const selected=all.filter(x=>x.checked).map(x=>x.value);c[field]=selected.length===all.length?[]:(selected.length?selected:['__NONE__']);huControl()});
+ document.querySelectorAll('[data-dot-select-all]').forEach(el=>el.onclick=()=>{dotTarget(el.dataset.site)[el.dataset.dotSelectAll]=[];huControl()});
+ document.querySelectorAll('[data-dot-clear]').forEach(el=>el.onclick=()=>{dotTarget(el.dataset.site)[el.dataset.dotClear]=['__NONE__'];huControl()});
  document.querySelectorAll('[data-dot-detail]').forEach(btn=>btn.onclick=()=>{
  const site=btn.dataset.site,cfg=dotTarget(site),d=dotData(site,state.sites[site].tms);
  const data=cfg.detail==='hu'?d.hus.map(x=>({label:x.hu,shipments:x.shipments})):cfg.detail==='cpt'?d.cpts.map(x=>({label:'CPT '+x.cpt,shipments:x.subcas.flatMap(z=>z.shipments)})):d.rows.map(x=>({label:x.subca,shipments:x.shipments}));
