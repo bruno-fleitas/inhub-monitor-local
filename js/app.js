@@ -747,9 +747,10 @@ function bindDotControls(){
  });
 }
 function huControl(){
-  let h='';
-  for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(t?.hu)h+=huDashboard(site,t)}
-  $('huView').innerHTML=h||'<div class="card empty">Procesá un TMS para ver el Control HU.</div>';
+  for(const [site,id] of [['soldati','huViewSoldati'],['echeverria','huViewEcheverria']]){
+    const t=state.sites[site].tms;
+    $(id).innerHTML=t?.hu?huDashboard(site,t):'<div class="card empty">Procesá el TMS de '+names[site]+' para ver su Control HU.</div>';
+  }
   bindHuControls();
   document.querySelectorAll('[data-arrival-apply]').forEach(b=>b.onclick=()=>{const site=b.dataset.arrivalApply,sel=document.querySelector(`[data-arrival-start="${site}"]`);if(!sel)return;huConfig(site).arrivalStartHour=Number(sel.value);huControl();});
   document.querySelectorAll('[data-inhubapply]').forEach(b=>b.onclick=()=>{const site=b.dataset.inhubapply,sel=document.querySelector(`[data-inhubstart="${site}"]`);if(!sel)return;huConfig(site).inhubStartHour=Number(sel.value);huControl();});
