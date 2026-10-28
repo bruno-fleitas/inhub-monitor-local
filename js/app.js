@@ -178,12 +178,19 @@ function summary(){
 }function cuts(a,start,type){return '<table><tr><th>Corte</th><th>%</th></tr>'+[16,18,20].map(c=>`<tr><td>Pre ${c}</td><td>${pf.format(cut(a,start,c,type))}%</td></tr>`).join('')+`<tr><td>Post 20</td><td>${pf.format(100-cut(a,start,20,type))}%</td></tr></table>`}
 function flowCurve(d,start){
  if(!d.tms||!d.registros)return '';
- const rows=[];let arAc=0,inAc=0;for(let h=start;h<24;h++){const ar=d.registros.byHour?.[h]||0,inh=d.tms.by?.[h]?.tot||0;arAc+=ar;inAc+=inh;rows.push({h,ar,inh,arAc,inAc})}
+ const rows=[];let arAc=0,inAc=0;
+ for(let h=start;h<24;h++){const ar=d.registros.byHour?.[h]||0,inh=d.tms.by?.[h]?.tot||0;arAc+=ar;inAc+=inh;rows.push({h,ar,inh,arAc,inAc})}
  const max=Math.max(1,...rows.flatMap(x=>[x.ar,x.inh]));
- const pts=(key)=>rows.map((x,i)=>{const xx=rows.length===1?50:i/(rows.length-1)*100,yy=94-(x[key]/max*84);return xx+','+yy}).join(' ');
- return `<div class="flow-curve"><div class="flow-title"><div><h3>Arribado vs Ingresado TMS por hora</h3><small>Arribado = Reporte de Registros · Ingresado = Inbound Date Included (TMS)</small></div><div class="flow-legend"><span class="flow-arr">● Arribado</span><span class="flow-in">● Ingresado TMS</span></div></div>
- <div class="flow-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="0" y1="94" x2="100" y2="94" class="axis"/><polyline points="${pts('ar')}" class="line-arr"/><polyline points="${pts('inh')}" class="line-in"/></svg><div class="flow-values">${rows.map(x=>`<div><b>${String(x.h).padStart(2,'0')}:00</b><span>${nf.format(x.ar)}</span><span>${nf.format(x.inh)}</span></div>`).join('')}</div></div>
- <div class="scroll"><table><tr><th>Hora</th><th>Arribado Registros</th><th>Ingresado TMS</th><th>Brecha hora</th><th>Arribado acum.</th><th>TMS acum.</th><th>Brecha acum.</th></tr>${rows.map(x=>`<tr><td>${String(x.h).padStart(2,'0')}:00</td><td>${nf.format(x.ar)}</td><td>${nf.format(x.inh)}</td><td class="${x.ar-x.inh>=0?'posnum':'negnum'}">${x.ar-x.inh>=0?'+':''}${nf.format(x.ar-x.inh)}</td><td>${nf.format(x.arAc)}</td><td>${nf.format(x.inAc)}</td><td class="${x.arAc-x.inAc>=0?'posnum':'negnum'}">${x.arAc-x.inAc>=0?'+':''}${nf.format(x.arAc-x.inAc)}</td></tr>`).join('')}</table></div></div>`;
+ const W=Math.max(900,rows.length*85),H=290,left=40,right=36,top=35,bottom=48,plotW=W-left-right,plotH=H-top-bottom;
+ const xx=i=>left+(rows.length===1?0.5:i/(rows.length-1))*plotW;
+ const yy=n=>top+plotH-(n/max)*plotH;
+ const points=key=>rows.map((x,i)=>xx(i)+','+yy(x[key])).join(' ');
+ const series=(key,color,shift)=>rows.map((x,i)=>{
+  const xPos=xx(i),yPos=yy(x[key]),textY=Math.max(12,Math.min(H-bottom-12,yPos+shift));
+  return '<circle cx="'+xPos+'" cy="'+yPos+'" r="3.5" fill="'+color+'" stroke="#101e34" stroke-width="1.5"><title>'+String(x.h).padStart(2,'0')+':00 · '+(key==='ar'?'ED':'TMS')+': '+nf.format(x[key])+'</title></circle><text x="'+xPos+'" y="'+textY+'" text-anchor="middle" font-size="10" font-weight="700" fill="'+color+'">'+nf.format(x[key])+'</text>';
+ }).join('');
+ const labels=rows.map((x,i)=>'<text x="'+xx(i)+'" y="'+(H-17)+'" text-anchor="middle" font-size="11" fill="#a6b9d6">'+String(x.h).padStart(2,'0')+':00</text>').join('');
+ return '<div class="flow-curve"><div class="flow-title"><div><h3>Arribado vs Ingresado TMS por hora</h3><small>ED = Reporte de Registros · TMS = Inbound Date Included. Valores visibles en cada punto.</small></div><div class="flow-legend"><span class="flow-arr">● Arribado ED</span><span class="flow-in">● Ingresado TMS</span></div></div><div class="flow-point-scroll"><svg class="flow-point-svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="Curva horaria de arribado e ingresado con cantidades en cada punto"><line x1="'+left+'" y1="'+(top+plotH)+'" x2="'+(W-right)+'" y2="'+(top+plotH)+'" stroke="#64748b"/><polyline points="'+points('ar')+'" fill="none" stroke="#2996ee" stroke-width="2.5"/><polyline points="'+points('inh')+'" fill="none" stroke="#20a783" stroke-width="2.5"/>'+series('ar','#55b6ff',-12)+series('inh','#43d5aa',18)+labels+'</svg></div><div class="scroll"><table><tr><th>Hora</th><th>Arribado ED</th><th>Ingresado TMS</th><th>Brecha hora</th><th>Arribado acum.</th><th>TMS acum.</th><th>Brecha acum.</th></tr>'+rows.map(x=>'<tr><td>'+String(x.h).padStart(2,'0')+':00</td><td>'+nf.format(x.ar)+'</td><td>'+nf.format(x.inh)+'</td><td>'+nf.format(x.ar-x.inh)+'</td><td>'+nf.format(x.arAc)+'</td><td>'+nf.format(x.inAc)+'</td><td>'+nf.format(x.arAc-x.inAc)+'</td></tr>').join('')+'</table></div></div>';
 }
 function dockProductivity(t){
  if(!t?.docks?.length)return '';
@@ -279,13 +286,26 @@ function operationalHourMatrix(site){
   ['ED · descargado','ed',fmt,totalED,!!ed],
   ['TMS · Inhub','tms',fmt,totalTMS,!!tms],
   ['ACUM · TMS','acum',fmt,totalTMS,!!tms],
-  ['% ED acumulado','share',x=>pctFmt(totalED?x/totalED*100:null),totalED?100:null,!!ed],
-  ['Vehículos','vehicles',fmt,totalVeh,!!arr],
-  ['SPR · pza/veh.','spr',x=>x===null?'—':x.toLocaleString('es-AR',{maximumFractionDigits:1}),totalVeh&&ed?totalED/totalVeh:null,!!ed&&!!arr]
+  ['% ED acumulado','share',x=>pctFmt(totalED?x/totalED*100:null),totalED?100:null,!!ed]
  ];
  return '<section class="hour-matrix"><h3>Control horario · ED / TMS / SPR</h3><p class="muted">SPR = paquetes ED ÷ vehículos de Arribos. ACUM y % ED son acumulados continuos desde la hora inicial configurada. El SPR total usa paquetes y vehículos totales, no el promedio de los SPR horarios.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>'+hours.map(h=>'<th>'+String(h).padStart(2,'0')+':00</th>').join('')+'<th>TOTAL</th></tr></thead><tbody>'+definitions.map(([label,key,format,total,available])=>'<tr><th>'+label+'</th>'+hours.map((h,i)=>'<td>'+(available?format(values[key][i]):'—')+'</td>').join('')+'<td class="matrix-total">'+(available?(key==='share'?pctFmt(total):key==='spr'?total===null?'—':total.toLocaleString('es-AR',{maximumFractionDigits:1}):fmt(total)):'—')+'</td></tr>').join('')+'</tbody></table></div></section>';
 }
-function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros)continue;h+=`<article class="card"><h2>${names[site]}</h2>${operationalHourMatrix(site)}${flowCurve(d,start)}${d.tms?.hu?`<section class="hu-hourly-moved"><h3>Bipeo HU por hora · ${names[site]}</h3>${huHourlyTable(huSeparateAir(d.tms).normal)}</section>`:""}${dockProductivity(d.tms)}<div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}${vehiclePie(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3>${tmsTable(d.tms,start)}<h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
+function vehicleSprMatrix(site){
+ const d=state.sites[site],a=d.arrivals,r=d.registros;
+ const start=Math.max(0,Math.min(23,Number(state.config.curveStart??9)));
+ const hours=Array.from({length:24},(_,i)=>(start+i)%24);
+ const ed=r?.byHour||null,vehicles=a?.h||null;
+ if(!ed&&!vehicles)return '';
+ const vehValues=hours.map(h=>vehicles?Number(vehicles[h]?.veh||0):null);
+ const edValues=hours.map(h=>ed?Number(ed[h]||0):null);
+ const sprValues=hours.map((h,i)=>vehValues[i]>0&&edValues[i]!==null?edValues[i]/vehValues[i]:null);
+ const vTotal=vehValues.reduce((n,x)=>n+(x||0),0),eTotal=edValues.reduce((n,x)=>n+(x||0),0);
+ const fmt=x=>x===null?'—':nf.format(Math.round(x));
+ const spr=x=>x===null?'—':x.toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1});
+ const rows=[['Vehículos recibidos',vehValues,fmt,vehicles?fmt(vTotal):'—'],['Paquetes ED',edValues,fmt,ed?fmt(eTotal):'—'],['SPR · pza/veh.',sprValues,spr,vehicles&&ed&&vTotal?spr(eTotal/vTotal):'—']];
+ return '<section class="hour-matrix vehicle-spr-matrix"><h3>Vehículos y SPR por hora</h3><p class="muted">Vehículos: archivo Arribos. Paquetes: reporte ED. SPR = paquetes ED / vehículos de la misma hora. Sin archivo Arribos no es posible calcular SPR; no se reemplaza por datos estimados.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>'+hours.map(h=>'<th>'+String(h).padStart(2,'0')+':00</th>').join('')+'<th>TOTAL</th></tr></thead><tbody>'+rows.map(([label,values,format,total])=>'<tr><th>'+label+'</th>'+values.map(x=>'<td>'+format(x)+'</td>').join('')+'<td class="matrix-total">'+total+'</td></tr>').join('')+'</tbody></table></div></section>';
+}
+function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros)continue;h+=`<article class="card"><h2>${names[site]}</h2>${operationalHourMatrix(site)}${vehicleSprMatrix(site)}${flowCurve(d,start)}${d.tms?.hu?`<section class="hu-hourly-moved"><h3>Bipeo HU por hora · ${names[site]}</h3>${huHourlyTable(huSeparateAir(d.tms).normal)}</section>`:""}${dockProductivity(d.tms)}<div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}${vehiclePie(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3>${tmsTable(d.tms,start)}<h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
 function mix(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(!t)continue;const pure=Math.max(0,t.vol-t.big-t.sb),base=Math.max(0,t.totalConPost-t.big-t.sb);h+=`<article class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div></div>${packagePie(t)}${tmsTable(t,start)}</article>`} $('mixView').innerHTML=h||'<article class="card empty">Sin TMS.</article>'}
 
 function cfg(site){const t=state.sites[site].tms;if(!t)return null;const mp=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));const groups=t.subcaGroups.map(g=>{const x=mp.get(String(g.subca).trim().toUpperCase());return{...g,ola:x?.ola||'',cpt:x?.cpt??'',indicador:x?.indicador||''}});return{total:t.totalConPost,groups,unknown:groups.filter(g=>g.subca!=='SIN SUBCA'&&!mp.has(String(g.subca).trim().toUpperCase()))}}
