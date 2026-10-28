@@ -353,18 +353,18 @@ function vehicleSprMatrix(site){
  const fmt=x=>x===null?'—':nf.format(Math.round(x));
  const spr=x=>x===null?'—':x.toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1});
  const rows=[['Vehículos recibidos',vehValues,fmt,vehicles?fmt(vTotal):'—'],['Paquetes ED',edValues,fmt,ed?fmt(eTotal):'—'],['SPR · pza/veh.',sprValues,spr,vehicles&&ed&&vTotal?spr(eTotal/vTotal):'—']];
- const sourceHours=a?.h||r?.vehiclesByHour||null;
+ const sourceHours=r?.vehiclesByHour||a?.h||null;
  const typeRows=[['Chasis','chasis'],['Camioneta (incluye MELI)','camioneta'],['Semi','semi']];
  const typeMatrix=sourceHours?'<div class="hour-matrix-scroll" style="margin-top:12px"><table><thead><tr><th>Vehículo / indicador</th>'+hours.map(h=>'<th>'+String(h).padStart(2,'0')+':00</th>').join('')+'<th>TOTAL</th></tr></thead><tbody>'+typeRows.map(([label,key])=>{
   const hourly=hours.map(h=>Number(sourceHours[h]?.[key]||0));const sum=hourly.reduce((n,x)=>n+x,0);
   let running=0;const cumulative=hourly.map(x=>(running+=x));
-  const share=hourly.map(x=>vTotal?x/vTotal*100:null);
+  const share=cumulative.map(x=>sum?x/sum*100:null);
   const pieces=r?.packagesByTypeHour?.[key];
   const hourlySpr=hours.map((h,i)=>pieces&&hourly[i]>0?Number(pieces[h]||0)/hourly[i]:null);
   const totalPieces=pieces?hours.reduce((n,h)=>n+Number(pieces[h]||0),0):null;
   const cells=(label,vals,format,total)=>'<tr><th>'+label+'</th>'+vals.map(x=>'<td>'+format(x)+'</td>').join('')+'<td class="matrix-total">'+total+'</td></tr>';
-  return cells(label+' · arribados',hourly,fmt,fmt(sum))+cells(label+' · acumulado',cumulative,fmt,fmt(sum))+cells(label+' · % del total',share,x=>x===null?'—':pf.format(x)+'%',vTotal?pf.format(sum/vTotal*100)+'%':'—')+cells(label+' · SPR',hourlySpr,spr,totalPieces!==null&&sum?spr(totalPieces/sum):'—');
- }).join('')+'</tbody></table></div><p class="muted">Camioneta MELI se incluye en Camioneta. % = participación sobre todos los vehículos recibidos del rango. SPR por tipo = piezas ED asignadas a ese tipo ÷ vehículos del mismo tipo; si no hay desglose de piezas, se muestra —.</p>':'';
+  return cells(label+' · arribados',hourly,fmt,fmt(sum))+cells(label+' · acumulado',cumulative,fmt,fmt(sum))+cells(label+' · % acumulado',share,x=>x===null?'—':pf.format(x)+'%',sum?'100,0%':'—')+cells(label+' · SPR',hourlySpr,spr,totalPieces!==null&&sum?spr(totalPieces/sum):'—');
+ }).join('')+'</tbody></table></div><p class="muted">Camioneta MELI se incluye en Camioneta. % acumulado = vehículos acumulados del tipo ÷ total de ese tipo en el rango. SPR por tipo = piezas ED asignadas a ese tipo ÷ vehículos del mismo tipo; si no hay desglose de piezas, se muestra —.</p>':'';
  return '<section class="hour-matrix vehicle-spr-matrix"><h3>Vehículos y SPR por hora</h3><p class="muted">Vehículos: Arribos o registros únicos de Easy Docking (si no hay Arribos). Paquetes: reporte ED. SPR = paquetes ED / vehículos de la misma hora. Sin vehículos disponibles se muestra —; no se usan estimaciones.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>'+hours.map(h=>'<th>'+String(h).padStart(2,'0')+':00</th>').join('')+'<th>TOTAL</th></tr></thead><tbody>'+rows.map(([label,values,format,total])=>'<tr><th>'+label+'</th>'+values.map(x=>'<td>'+format(x)+'</td>').join('')+'<td class="matrix-total">'+total+'</td></tr>').join('')+'</tbody></table></div>'+typeMatrix+'</section>';
 }
 function huGoalView(){const host=$('huplanView');if(!host)return;host.innerHTML=['soldati','echeverria'].map(site=>'<section class="plan-site"><h3>'+names[site]+'</h3>'+huHourlyGoalPlan(site)+'</section>').join('')}
