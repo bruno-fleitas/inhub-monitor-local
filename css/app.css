@@ -384,3 +384,27 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .vehicle-dist-total{border-top:1px solid #30415b;margin-top:4px;padding-top:13px}
 @media(max-width:950px){.vehicle-dist-layout{grid-template-columns:1fr}.vehicle-dist-chart{max-width:500px}.vehicle-dist-heading{flex-wrap:wrap}}
 @media(max-width:520px){.vehicle-dist{padding:15px}.vehicle-dist-chart{min-height:290px}.vehicle-dist-label{font-size:10px;padding:3px 4px}.vehicle-dist-label b{font-size:11px}.vehicle-dist-card-stats{grid-template-columns:1fr 1fr}}
+
+
+/* Curvas: lectura compacta y consistente en ambos sites */
+.curves-site{display:flex;flex-direction:column;gap:20px}
+.curves-site>h2{text-align:center;margin:4px 0 0;color:#163d65}
+.curves-site .curve-range{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border:1px solid #d7e3ef;background:#f5f8fc;border-radius:12px}
+.curves-site .curve-range strong{color:#203e60;margin-right:8px}
+.curves-site .curve-range label{display:flex;align-items:center;gap:8px;color:#314e6c;font-weight:600}
+.curves-site .curve-range select{min-width:96px;padding:9px;border:1px solid #c9d8e9;border-radius:8px;background:white;color:#10243c}
+.curves-matrices{display:grid;gap:18px}
+.curves-site .hour-matrix{margin:0;padding:15px 16px;background:#f8fafd;border:1px solid #dce6f1;border-radius:14px;min-width:0}
+.curves-site .hour-matrix h3{text-align:left;margin:0 0 7px;color:#193c61;font-size:17px}
+.curves-site .hour-matrix .muted{margin:0 0 12px;font-size:12px;line-height:1.5}
+.curves-site .hour-matrix-scroll{border-radius:9px;overflow:auto;max-width:100%}
+.curves-site .hour-matrix table{font-size:12px;font-variant-numeric:tabular-nums}
+.curves-site .hour-matrix th,.curves-site .hour-matrix td{padding:10px 9px;white-space:nowrap}
+.curves-site .hour-matrix tbody tr:hover td{background:#273f5f}
+.curves-site .hu-hourly-moved{background:#f8fafd;border:1px solid #dce6f1;border-radius:14px;padding:16px}
+.curves-site .hu-hourly-moved h3{text-align:left;margin:0 0 14px;color:#193c61}
+.curves-site .hu-bipe-grid{grid-template-columns:minmax(0,2fr) minmax(210px,1fr);gap:14px}
+.curves-site .hu-prom{min-height:100%;padding:20px}
+.curves-site .hu-bars{overflow-x:auto;max-width:100%;padding:14px}
+.curves-site .curves-arrivals{padding:14px;border:1px solid #dce6f1;border-radius:12px}
+@media(max-width:760px){.curves-site .hu-bipe-grid{grid-template-columns:1fr}.curves-site .curve-range{justify-content:flex-start}}
