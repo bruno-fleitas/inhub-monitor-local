@@ -253,6 +253,7 @@ function huCptRows(site,t){
   }
   return [...m.values()].sort((a,b)=>String(a.cpt).localeCompare(String(b.cpt),'es',{numeric:true}));
 }
+const huPercent2=v=>Number(v||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
 function huPct(x){return x.etiquetado?pct(x.abierto+x.cerrado,x.etiquetado):0}
 function huTone(v,obj){return v>=obj?'hu-good':'hu-bad'}
 function huActiveUsers(site,t){const cfg=huConfig(site),mins=Math.max(1,Number(cfg.activeMinutes)||10),max=t.hu?.maxOutTs;if(max==null)return[];const src=t.hu?.userActivity||t.hu?.activeUsers||[];return src.filter(x=>max-x.last<mins*60000)}
@@ -289,8 +290,8 @@ function huSeparateAir(t){
 function huAirPanel(site,t,detailMode=false){
  const x=huSeparateAir(t).meli,tot=x.hu.totals,progress=tot.etiquetado?pct(tot.abierto+tot.cerrado,tot.etiquetado):0;
  const airUsers=[...new Map(huActiveUsers(site,x).map(u=>[u.user,{user:u.user,last:u.last}])).values()];
- if(!detailMode)return `<section class="hu-air-compact"><h3>Armado de HU · MELI Air</h3><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr><tr class="hu-air-row"><td>00:00</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td><span class="hu-pill ${huTone(progress,huConfig(site).objective)}">${pf.format(progress)}%</span></td><td>${huUserButton(airUsers,'MELI Air · conectados')}</td></tr></table></section>`;
- return `<section class="hu-air-panel"><h3>MELI AIR · Detalle por SubCA</h3><div class="hu-scroll"><table class="hu-table"><tr><th>SubCA</th><th>Etiquetado</th><th>Abierto</th><th>Cerrado</th><th>Pendiente</th><th>Avance</th><th>Conectados</th></tr>${x.hu.subca.map(g=>`<tr><td>${esc(g.subca)}</td><td>${nf.format(g.etiquetado)}</td><td>${nf.format(g.abierto)}</td><td>${nf.format(g.cerrado)}</td><td>${nf.format(g.pendiente)}</td><td>${pf.format(g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0)}%</td><td>${huUserButton(airUsers.filter(u=>huActiveUsers(site,x).some(a=>a.user===u.user&&String(a.subca).toUpperCase()===String(g.subca).toUpperCase())),g.subca+' · conectados')}</td></tr>`).join('')}</table></div></section>`;
+ if(!detailMode)return `<section class="hu-air-compact"><h3>Armado de HU · MELI Air</h3><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr><tr class="hu-air-row"><td>00:00</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td><span class="hu-pill ${huTone(progress,huConfig(site).objective)}">${huPercent2(progress)}%</span></td><td>${huUserButton(airUsers,'MELI Air · conectados')}</td></tr></table></section>`;
+ return `<section class="hu-air-panel"><h3>MELI AIR · Detalle por SubCA</h3><div class="hu-scroll"><table class="hu-table"><tr><th>SubCA</th><th>Etiquetado</th><th>Abierto</th><th>Cerrado</th><th>Pendiente</th><th>Avance</th><th>Conectados</th></tr>${x.hu.subca.map(g=>`<tr><td>${esc(g.subca)}</td><td>${nf.format(g.etiquetado)}</td><td>${nf.format(g.abierto)}</td><td>${nf.format(g.cerrado)}</td><td>${nf.format(g.pendiente)}</td><td>${huPercent2(g.etiquetado?pct(g.abierto+g.cerrado,g.etiquetado):0)}%</td><td>${huUserButton(airUsers.filter(u=>huActiveUsers(site,x).some(a=>a.user===u.user&&String(a.subca).toUpperCase()===String(g.subca).toUpperCase())),g.subca+' · conectados')}</td></tr>`).join('')}</table></div></section>`;
 }
 function huDashboard(site,originalT){
   const t=huSeparateAir(originalT).normal;
@@ -323,14 +324,14 @@ function huDashboard(site,originalT){
       <div class="hu-left">
         <div class="hu-kpi-panel">
           <table class="hu-summary"><tr><td>TOTAL Piezas</td><td>${nf.format(tot.etiquetado)}</td></tr><tr><td>Piezas con HU Abierto</td><td>${nf.format(tot.abierto)}</td></tr><tr><td>Piezas HU Cerrado</td><td>${nf.format(tot.cerrado)}</td></tr><tr><td>Piezas Pendientes de HU</td><td>${nf.format(tot.pendiente)}</td></tr></table>
-          <div class="hu-big ${huTone(avance,cfg.objective)}">${pf.format(avance)}%</div>
+          <div class="hu-big ${huTone(avance,cfg.objective)}">${huPercent2(avance)}%</div>
         </div>
         ${huAirPanel(site,originalT,false)}
         <div class="hu-titlebar">CONTROL - CPT / XD</div>
         <h3>Armado de HU · General (sin MELI Air)</h3>
-        <div class="hu-scroll hu-cpt-full"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr>
-        ${rows.map(x=>{const a=huPct(x);return `<tr><td>${x.cpt}</td><td>${nf.format(x.etiquetado)}</td><td>${nf.format(x.abierto)}</td><td>${nf.format(x.cerrado)}</td><td class="hu-pend">${nf.format(x.pendiente)}</td><td><span class="hu-pill ${huTone(a,cfg.objective)}">${pf.format(a)}%</span></td><td>${huUserButton([...x.users].map(user=>({user,last:(huActiveUsers(site,t).find(a=>a.user===user)?.last||null)})),'CPT '+x.cpt+' · conectados')}</td></tr>`}).join('')}
-        <tr class="total"><td>Total</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td>${pf.format(avance)}%</td><td>${huUserButton([...new Map(huActiveUsers(site,t).map(a=>[a.user,{user:a.user,last:a.last}])).values()],'Total · conectados')}</td></tr></table></div>
+        <div class="hu-scroll hu-cpt-full"><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>% Share</th><th>Users activos</th></tr>
+        ${rows.map(x=>{const a=huPct(x);return `<tr><td>${x.cpt}</td><td>${nf.format(x.etiquetado)}</td><td>${nf.format(x.abierto)}</td><td>${nf.format(x.cerrado)}</td><td class="hu-pend">${nf.format(x.pendiente)}</td><td><span class="hu-pill ${huTone(a,cfg.objective)}">${huPercent2(a)}%</span></td><td>${huPercent2(tot.etiquetado?pct(x.etiquetado,tot.etiquetado):0)}%</td><td>${huUserButton([...x.users].map(user=>({user,last:(huActiveUsers(site,t).find(a=>a.user===user)?.last||null)})),'CPT '+x.cpt+' · conectados')}</td></tr>`}).join('')}
+        <tr class="total"><td>Total</td><td>${nf.format(tot.etiquetado)}</td><td>${nf.format(tot.abierto)}</td><td>${nf.format(tot.cerrado)}</td><td>${nf.format(tot.pendiente)}</td><td>${huPercent2(avance)}%</td><td>100,00%</td><td>${huUserButton([...new Map(huActiveUsers(site,t).map(a=>[a.user,{user:a.user,last:a.last}])).values()],'Total · conectados')}</td></tr></table></div>
       </div>
       <div class="hu-right">
         <h3>Datos operativos</h3>
@@ -355,7 +356,7 @@ function huDashboard(site,originalT){
     <div class="hu-tracking-block"><h3>Seguimiento por CPT y SubCA</h3><div class="hu-note">Avance, pendientes y conectados activos por cada SubCA dentro de su CPT.</div>${huTrackingTable(site,t)}</div>
     ${dotMonitor(site,originalT)}
     <div class="hu-bottom-grid">
-      <div><h3>Auditoría CPT · objetivo ${pf.format(cfg.cptObjective)}%</h3><div class="hu-scroll"><table class="hu-table compact"><tr><th>CPT</th><th>Avance</th><th>Pendiente</th><th>Estado</th></tr>${rows.map(x=>{const a=huPct(x),ok=a>=cfg.cptObjective;return `<tr><td>${x.cpt}</td><td>${pf.format(a)}%</td><td>${nf.format(x.pendiente)}</td><td><span class="hu-pill ${ok?'hu-good':a>=95?'hu-warn':'hu-bad'}">${ok?'CUMPLE':'PENDIENTE'}</span></td></tr>`}).join('')}</table></div><div class="hu-note">${bad.length?bad.length+' CPT debajo del objetivo final':'Todos los CPT cumplen el objetivo final'}.</div></div>
+      <div><h3>Auditoría CPT · objetivo ${pf.format(cfg.cptObjective)}%</h3><div class="hu-scroll"><table class="hu-table compact"><tr><th>CPT</th><th>Avance</th><th>Pendiente</th><th>Estado</th></tr>${rows.map(x=>{const a=huPct(x),ok=a>=cfg.cptObjective;return `<tr><td>${x.cpt}</td><td>${huPercent2(a)}%</td><td>${nf.format(x.pendiente)}</td><td><span class="hu-pill ${ok?'hu-good':a>=95?'hu-warn':'hu-bad'}">${ok?'CUMPLE':'PENDIENTE'}</span></td></tr>`}).join('')}</table></div><div class="hu-note">${bad.length?bad.length+' CPT debajo del objetivo final':'Todos los CPT cumplen el objetivo final'}.</div></div>
       <div><h3>Productividad HU · Top usuarios</h3><div class="hu-scroll">${huProductivity(t)}</div></div>
     </div>
   </section>`;
