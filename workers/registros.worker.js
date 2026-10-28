@@ -46,7 +46,7 @@ async function analyze(file,day){
   const sample=rows.find(r=>Object.values(r).some(v=>v!==''))||rows[0];
   const kChofer=key(sample,['CHOFER']),kTipo=key(sample,['TIPO DE OPERACION']),kAcc=key(sample,['Accion']),kFecha=key(sample,['Fecha y hora']),kPaq=key(sample,['CANT PAQUETES']);
   if(!kTipo||!kAcc||!kFecha)throw new Error('Registros: faltan columnas requeridas.');
-  const byHour=Array(24).fill(0);let records=0,packages=0,lastTs=null,currentHourPackages=0;
+  const byHour=Array(24).fill(0),vehiclesByHour=Array.from({length:24},()=>({veh:0,camioneta:0,chasis:0,semi:0}));const vehicleIds=new Set();const kId=key(sample,['ID Registro']),kVehicle=key(sample,['TIPO DE VEHICULO']);let records=0,packages=0,lastTs=null,currentHourPackages=0;
   for(const r of rows){
     const chofer=kChofer?String(r[kChofer]??'').trim():'';
     const tipo=String(r[kTipo]??'').trim();
@@ -57,6 +57,16 @@ async function analyze(file,day){
     const p=parts(r[kFecha]);if(!p||!sameDay(p,day)||p.h===1||p.h===2)continue;
     const q=kPaq?num(r[kPaq]):0;
     records++;packages+=q;byHour[p.h]+=q;
+    const id=kId?String(r[kId]??'').trim():'';
+    const uniqueKey=id||('fila-'+records);
+    if(!vehicleIds.has(uniqueKey)){
+      vehicleIds.add(uniqueKey);
+      const v=vehiclesByHour[p.h];v.veh++;
+      const type=norm(kVehicle?r[kVehicle]:'');
+      if(type.includes('camioneta'))v.camioneta++;
+      else if(type.includes('chasis'))v.chasis++;
+      else if(type.includes('semi'))v.semi++;
+    }
     const st=stamp(p);if(st!=null&&(lastTs==null||st>lastTs))lastTs=st;
   }
   let currentSpeed=0,currentHour=null,elapsedMinutes=0;
@@ -65,7 +75,7 @@ async function analyze(file,day){
     currentHourPackages=byHour[currentHour]||0;
     currentSpeed=elapsedMinutes>0?currentHourPackages/(elapsedMinutes/60):currentHourPackages;
   }
-  return{ok:true,records,packages,byHour,lastTs,currentHour,currentHourPackages,elapsedMinutes,currentSpeed,sheet:src.sheet};
+  return{ok:true,records,packages,byHour,vehiclesByHour,vehicles:vehicleIds.size,lastTs,currentHour,currentHourPackages,elapsedMinutes,currentSpeed,sheet:src.sheet};
 }
 self.onmessage=async e=>{
   if(e.data?.type!=='PROCESS_REGISTROS')return;
