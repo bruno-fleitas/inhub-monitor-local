@@ -103,7 +103,7 @@ function dockDashboard(){
  document.querySelectorAll('.dock-limit').forEach(el=>el.onchange=()=>{const n=Number(el.value);if(!Number.isFinite(n)||n<0)return;state.config['dockThreshold_'+el.dataset.dockSite]=n;localStorage.setItem('inhub_dockThreshold_'+el.dataset.dockSite,String(n));dockDashboard()});
 }
 
-function renderAll(){summary();operation();huControl();curves();dockDashboard();mix();subca();jornales();mail();reportPreview()}
+function renderAll(){summary();operation();huControl();curves();planVsReal();dockDashboard();mix();subca();jornales();mail();reportPreview()}
 function summary(){
   let h='<div class="summary-sites">',any=false;
   for(const site of ['soldati','echeverria']){
@@ -157,6 +157,37 @@ function dockProductivity(t){
  const clock=x=>new Date(x).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
  return `<div class="flow-curve"><h3>Productividad por dock · TMS</h3><p class="muted">Velocidad = paquetes bipeados / tiempo entre primer y último Inbound Date Included del dock. No representa necesariamente tiempo activo continuo.</p><div class="scroll"><table><tr><th>Dock</th><th>Paquetes</th><th>Primer bipeo</th><th>Último bipeo</th><th>Duración</th><th>Productividad (pza/h)</th></tr>${rows.map(x=>`<tr><td>${esc(x.dock)}</td><td>${nf.format(x.count)}</td><td>${clock(x.first)}</td><td>${clock(x.last)}</td><td>${x.hours>0?pf.format(x.hours)+' h':'—'}</td><td><b>${x.rate!==null?nf.format(Math.round(x.rate)):'No calculable'}</b></td></tr>`).join('')}</table></div></div>`;
 }
+
+function planVsReal(){
+ const host=$('planView');if(!host)return;
+ const hours=Array.from({length:14},(_,i)=>i+9);
+ const types=[['camioneta','Camioneta'],['chasis','Chasis'],['semi','Semi']];
+ const storeKey=site=>'inhub_vehicle_plan_'+site;
+ let html='';
+ for(const site of ['soldati','echeverria']){
+  let saved={};try{saved=JSON.parse(localStorage.getItem(storeKey(site))||'{}')||{}}catch{}
+  const a=state.sites[site].arrivals;
+  const totals={plan:0,real:0},hourRows=[];
+  for(const hour of hours){
+   const p={},real={};for(const [key] of types){p[key]=Math.max(0,Number(saved[hour]?.[key])||0);real[key]=Number(a?.h?.[hour]?.[key])||0}
+   const pt=Object.values(p).reduce((x,y)=>x+y,0),rt=Object.values(real).reduce((x,y)=>x+y,0);
+   totals.plan+=pt;totals.real+=rt;hourRows.push({hour,p,real,pt,rt});
+  }
+  const fmt=v=>nf.format(v);
+  const max=Math.max(1,...hourRows.flatMap(x=>[x.pt,x.rt]));
+  const pts=key=>hourRows.map((x,i)=>[35+i*53,180-(x[key]/max)*155].join(',')).join(' ');
+  const chart='<svg viewBox="0 0 790 215" role="img" aria-label="Líneas de vehículos planificados y reales por hora" style="width:100%;max-height:270px;background:#111d30;border-radius:12px"><line x1="30" y1="180" x2="755" y2="180" stroke="#6d7b91"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="'+pts('pt')+'"/><polyline fill="none" stroke="#3bc8ba" stroke-width="3" points="'+pts('rt')+'"/>'+hourRows.map((x,i)=>'<text x="'+(35+i*53)+'" y="201" fill="#e4edf8" font-size="12" text-anchor="middle">'+String(x.hour).padStart(2,'0')+'</text>').join('')+'</svg>';
+  html+='<section class="plan-site" data-plan-site="'+site+'"><h3>'+names[site]+'</h3><p class="muted">Editá el plan por hora. El real se actualiza desde Arribos. Camioneta incluye Camioneta MELI.</p><div class="kpi-grid"><div class="kpi"><span>Plan</span><b>'+fmt(totals.plan)+'</b></div><div class="kpi"><span>Real</span><b>'+ (a?fmt(totals.real):'Sin arribos')+'</b></div><div class="kpi"><span>Diferencia</span><b>'+(a?fmt(totals.real-totals.plan):'—')+'</b></div><div class="kpi"><span>Cumplimiento</span><b>'+(a&&totals.plan?huPercent2(100*totals.real/totals.plan)+'%':'—')+'</b></div></div><div class="plan-chart"><div class="plan-legend"><span style="color:#f5a623">● Plan</span> <span style="color:#3bc8ba">● Real</span></div>'+chart+'</div><div class="plan-table-wrap"><table class="hu-table plan-table"><thead><tr><th rowspan="2">Hora</th><th colspan="4">Plan editable</th><th colspan="4">Real automático</th><th rowspan="2">Diferencia</th></tr><tr>'+types.map(x=>'<th>'+x[1]+'</th>').join('')+'<th>Total</th>'+types.map(x=>'<th>'+x[1]+'</th>').join('')+'<th>Total</th></tr></thead><tbody>'+hourRows.map(x=>'<tr><td>'+String(x.hour).padStart(2,'0')+':00</td>'+types.map(([key])=>'<td><input class="plan-cell" type="number" min="0" step="1" data-hour="'+x.hour+'" data-type="'+key+'" value="'+x.p[key]+'"></td>').join('')+'<td><b>'+fmt(x.pt)+'</b></td>'+types.map(([key])=>'<td>'+ (a?fmt(x.real[key]):'—')+'</td>').join('')+'<td><b>'+(a?fmt(x.rt):'—')+'</b></td><td>'+(a?fmt(x.rt-x.pt):'—')+'</td></tr>').join('')+'<tr class="total"><td>Total</td>'+types.map(([key])=>'<td>'+fmt(hourRows.reduce((n,x)=>n+x.p[key],0))+'</td>').join('')+'<td>'+fmt(totals.plan)+'</td>'+types.map(([key])=>'<td>'+(a?fmt(hourRows.reduce((n,x)=>n+x.real[key],0)):'—')+'</td>').join('')+'<td>'+(a?fmt(totals.real):'—')+'</td><td>'+(a?fmt(totals.real-totals.plan):'—')+'</td></tr></tbody></table></div><div class="toolbar"><button class="primary" data-save-plan="'+site+'">Guardar plan y actualizar gráfico</button><button class="secondary" data-clear-plan="'+site+'">Limpiar plan</button></div></section>';
+ }
+ host.innerHTML=html;
+ host.querySelectorAll('[data-save-plan]').forEach(btn=>btn.onclick=()=>{
+  const site=btn.dataset.savePlan,section=host.querySelector('[data-plan-site="'+site+'"]'),plan={};
+  section.querySelectorAll('.plan-cell').forEach(input=>{const hour=input.dataset.hour;plan[hour]??={};plan[hour][input.dataset.type]=Math.max(0,Math.floor(Number(input.value)||0))});
+  localStorage.setItem(storeKey(site),JSON.stringify(plan));planVsReal();
+ });
+ host.querySelectorAll('[data-clear-plan]').forEach(btn=>btn.onclick=()=>{localStorage.removeItem(storeKey(btn.dataset.clearPlan));planVsReal()});
+}
+
 function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros)continue;h+=`<article class="card"><h2>${names[site]}</h2>${flowCurve(d,start)}${dockProductivity(d.tms)}<div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}${vehiclePie(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3>${tmsTable(d.tms,start)}<h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
 function mix(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(!t)continue;const pure=Math.max(0,t.vol-t.big-t.sb),base=Math.max(0,t.totalConPost-t.big-t.sb);h+=`<article class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div></div>${packagePie(t)}${tmsTable(t,start)}</article>`} $('mixView').innerHTML=h||'<article class="card empty">Sin TMS.</article>'}
 
