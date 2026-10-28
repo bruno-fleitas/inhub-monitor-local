@@ -689,7 +689,7 @@ function dotCptTime(day,cpt){if(!day||cpt==null)return null;const raw=String(cpt
 function dotData(site,t){
  const cfg=dotTarget(site),src=t.dotRows||[],master=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));
  const statuses=[...new Set(src.map(x=>x.status).filter(Boolean))].sort(),subcas=[...new Set(src.map(x=>x.subca).filter(Boolean))].sort();
- const reference=state.config.analysisDate||null,base=reference|| (src.length?dotDay(Math.min(...src.filter(x=>x.inTs!=null).map(x=>x.inTs))):null);
+ const reference=state.config.analysisDate||null,base=reference|| (src.find(x=>x.inTs!=null)?dotDay(src.find(x=>x.inTs!=null).inTs):null);
  const start=dotTime(base,cfg.start),end=dotTime(base,cfg.end,1),latest=Math.max(0,t.maxInTs||0,t.hu?.maxOutTs||0,...src.filter(x=>x.dispatchTs!=null).map(x=>x.dispatchTs));
  const now=latest||Date.now(),groups=new Map(),huMap=new Map();let missingMaster=0;
  for(const x of src){
