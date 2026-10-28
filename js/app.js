@@ -201,36 +201,54 @@ function dockProductivity(t){
 
 
 function huHourlyGoalPlan(site){
- const t=state.sites[site].tms;if(!t?.hu)return '<p>Procesá TMS para ver el avance HU.</p>';
- const cfg=huConfig(site),cut=cfg.huCutoff||'',max=t.hu.maxOutTs;
- const forecast=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
- const targetPct=Math.max(0,Math.min(100,Number(cfg.targetPct??65)));
- if(!forecast)return '<p class="muted">Cargá el proyectado de '+names[site]+' para calcular la curva objetivo HU.</p>';
- const normal=huSeparateAir(t).normal,tot=normal.hu.totals;
- const processed=tot.abierto+tot.cerrado,goal=Math.ceil(forecast*targetPct/100);
+ const t=state.sites[site].tms;if(!t?.hu)return '<p class="muted">Procesá TMS para ver el avance HU.</p>';
+ const cfg=huConfig(site),forecast=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
+ if(!forecast)return '<p class="muted">Cargá el proyectado de '+names[site]+' para calcular el objetivo HU.</p>';
+ const pctGoal=Math.max(0,Math.min(100,Number(cfg.targetPct??65)));
+ const goal=Math.ceil(forecast*pctGoal/100),tot=huSeparateAir(t).normal.hu.totals,processed=tot.abierto+tot.cerrado;
+ const max=t.hu.maxOutTs,now=max?new Date(max):new Date();
  const [th,tm]=String(cfg.targetTime||'22:00').split(':').map(Number);
- const now=max?new Date(max):new Date(),end=new Date(now);end.setHours(th||0,tm||0,0,0);if(end<=now)end.setDate(end.getDate()+1);
- const start=new Date(now);start.setMinutes(0,0,0);
- const hours=[];for(let d=new Date(start);d<=end&&hours.length<24;d.setHours(d.getHours()+1))hours.push({date:new Date(d),hour:d.getHours()});
- const remaining=Math.max(0,goal-processed),duration=Math.max(1,(end-now)/3600000);
- const hourly=(t.hu.byHour||[]),airHourly=(t.meli?.by||{});
- // TMS HU byHour may include MELI Air: subtract MELI processed hourly only when available.
- const rows=hours.map((x,i)=>{
-  const raw=Number(hourly[x.hour]||0),air=Number(airHourly[x.hour]?.proc||0);
-  const real=x.date<=now?Math.max(0,raw-air):null;
-  const hoursElapsed=Math.max(0,Math.min(duration,(x.date.getTime()+3600000-now.getTime())/3600000));
-  const objective=processed+Math.round(remaining*hoursElapsed/duration);
-  return {...x,real,objective,needed:Math.max(0,objective-processed)};
+ const startHour=Math.max(0,Math.min(23,Number(cfg.huStartHour??7)));
+ const start=new Date(now);start.setHours(startHour,0,0,0);
+ if(start>now)start.setDate(start.getDate()-1);
+ const end=new Date(start);end.setHours(th||0,tm||0,0,0);if(end<=start)end.setDate(end.getDate()+1);
+ const duration=(end-start)/3600000;
+ const hourly=t.hu.byHour||[],air=t.meli?.by||{};
+ const rows=[];
+ for(let cursor=new Date(start);cursor<end&&rows.length<30;cursor.setHours(cursor.getHours()+1)){
+  const next=new Date(Math.min(cursor.getTime()+3600000,end.getTime()));
+  const h=cursor.getHours(),hours=(next-cursor)/3600000;
+  const raw=Number(hourly[h]||0),meli=Number(air[h]?.proc||0);
+  const real=cursor<=now?Math.max(0,raw-meli):null;
+  rows.push({h,stamp:new Date(cursor),hours,real});
+ }
+ const fmt=n=>nf.format(Math.round(n));
+ const completed=rows.filter(x=>x.real!==null),historical=completed.reduce((v,x)=>v+x.real,0);
+ // Reconcile the hourly series with the authoritative HU processed total.
+ const prior=Math.max(0,processed-historical);
+ let cumulative=prior,expected=0;
+ rows.forEach(x=>{
+  expected+=goal*x.hours/duration;
+  x.targetHour=goal*x.hours/duration;
+  x.targetAccum=Math.round(expected);
+  if(x.real!==null)cumulative+=x.real;
+  x.actualAccum=x.real===null?null:cumulative;
+  x.diff=x.real===null?null:x.real-Math.round(x.targetHour);
  });
- const fmt=n=>nf.format(n);
- const peak=Math.max(goal,processed,...rows.map(x=>x.objective),1);
- const point=(i,n)=>[48+i*(780/Math.max(1,rows.length-1)),185-n/peak*155];
- const points=rows.map((x,i)=>point(i,x.objective).join(',')).join(' ');
- const labels=rows.map((x,i)=>{const [px,py]=point(i,x.objective);return '<text x="'+px+'" y="'+Math.max(12,py-9)+'" fill="#ffbf66" font-size="11" text-anchor="middle">'+fmt(x.objective)+'</text><text x="'+px+'" y="211" fill="#c5d4e7" font-size="11" text-anchor="middle">'+String(x.hour).padStart(2,'0')+'</text>'}).join('');
- const actual=rows.map((x,i)=>x.real==null?'':{i,value:x.real}).filter(Boolean);
- const realPoints=actual.map(x=>point(x.i,x.value).join(',')).join(' ');
- const realLabels=actual.map(x=>{const [px,py]=point(x.i,x.value);return '<text x="'+px+'" y="'+Math.min(193,py+15)+'" fill="#64e4d6" font-size="11" text-anchor="middle">'+fmt(x.value)+'</text>'}).join('');
- return '<div class="kpi-grid"><div class="kpi"><span>Proyectado</span><b>'+fmt(forecast)+'</b></div><div class="kpi"><span>Objetivo '+huPercent2(targetPct)+'%</span><b>'+fmt(goal)+'</b></div><div class="kpi"><span>HU procesado actual (sin MELI Air)</span><b>'+fmt(processed)+'</b></div><div class="kpi"><span>Faltan para objetivo</span><b>'+fmt(remaining)+'</b></div></div><p class="muted">La línea naranja indica el acumulado necesario desde la última actualización hasta '+cfg.targetTime+'. La línea verde representa piezas HU reales por hora, sin MELI Air cuando el desglose horario está disponible. Los valores tienen escalas diferentes: acumulado vs horario.</p><div class="plan-chart"><svg viewBox="0 0 860 230" style="width:100%;background:#111d30;border-radius:12px"><line x1="40" y1="185" x2="840" y2="185" stroke="#66758d"/><polyline points="'+points+'" stroke="#ffbf66" fill="none" stroke-width="3"/>'+ (actual.length>1?'<polyline points="'+realPoints+'" stroke="#48d6b7" fill="none" stroke-width="3"/>':'')+labels+realLabels+'</svg></div><div class="plan-table-wrap"><table class="hu-table plan-table"><tr><th>Hora</th><th>Meta acumulada</th><th>HU real en esa hora</th><th>Necesario adicional acumulado</th></tr>'+rows.map(x=>'<tr><td>'+String(x.hour).padStart(2,'0')+':00</td><td>'+fmt(x.objective)+'</td><td>'+(x.real===null?'—':fmt(x.real))+'</td><td>'+fmt(x.needed)+'</td></tr>').join('')+'</table></div>';
+ const chart=(title,keyA,keyB,labelA,labelB,accum)=>{
+  const peak=Math.max(1,...rows.map(x=>Math.max(x[keyA]||0,x[keyB]||0)))*1.12;
+  const xy=(i,v)=>[52+i*760/Math.max(1,rows.length-1),205-(v||0)/peak*175];
+  const line=key=>rows.filter(x=>x[key]!==null).map(x=>xy(rows.indexOf(x),x[key]).join(',')).join(' ');
+  const labels=rows.map((x,i)=>{const [px]=xy(i,0);return '<text x="'+px+'" y="232" fill="#c9d6e8" font-size="12" text-anchor="middle">'+String(x.h).padStart(2,'0')+'</text>'}).join('');
+  const dots=key=>rows.filter(x=>x[key]!==null).map(x=>{const [px,py]=xy(rows.indexOf(x),x[key]);return '<circle cx="'+px+'" cy="'+py+'" r="3" fill="'+(key===keyA?'#ffbf66':'#43d6b0')+'"/><text x="'+px+'" y="'+Math.max(12,py+(key===keyA?-9:17))+'" font-size="10" fill="'+(key===keyA?'#ffbf66':'#43d6b0')+'" text-anchor="middle">'+fmt(x[key])+'</text>'}).join('');
+  return '<div class="flow-curve"><h3>'+title+'</h3><p class="muted"><span style="color:#ffbf66">● '+labelA+'</span> &nbsp; <span style="color:#43d6b0">● '+labelB+'</span></p><div class="plan-chart"><svg viewBox="0 0 860 250" style="width:100%;background:#111d30;border-radius:12px"><line x1="42" y1="205" x2="830" y2="205" stroke="#64748b"/><polyline points="'+line(keyA)+'" fill="none" stroke="#ffbf66" stroke-width="3"/><polyline points="'+line(keyB)+'" fill="none" stroke="#43d6b0" stroke-width="3"/>'+labels+dots(keyA)+dots(keyB)+'</svg></div></div>';
+ };
+ return '<div class="kpi-grid"><div class="kpi"><span>Proyectado</span><b>'+fmt(forecast)+'</b></div><div class="kpi"><span>Objetivo '+huPercent2(pctGoal)+'%</span><b>'+fmt(goal)+'</b></div><div class="kpi"><span>HU procesado (sin MELI Air)</span><b>'+fmt(processed)+'</b></div><div class="kpi"><span>Faltan para objetivo</span><b>'+fmt(Math.max(0,goal-processed))+'</b></div></div>'+
+ '<p class="muted">Jornada HU desde '+String(startHour).padStart(2,'0')+':00 hasta '+cfg.targetTime+'. Comparación horaria con la misma unidad: piezas por hora. Meta distribuida proporcionalmente durante la jornada; no es una proyección histórica de dotación.</p>'+
+ chart('Producción HU por hora · objetivo vs real','targetHour','real','Objetivo por hora','Real por hora')+
+ chart('Avance HU acumulado · objetivo vs real','targetAccum','actualAccum','Meta acumulada','Real acumulado')+
+ '<div class="plan-table-wrap"><table class="hu-table plan-table"><tr><th>Hora</th><th>Objetivo / hora</th><th>HU real / hora</th><th>Diferencia / hora</th><th>Meta acumulada</th><th>Real acumulado</th></tr>'+rows.map(x=>'<tr><td>'+String(x.h).padStart(2,'0')+':00</td><td>'+fmt(x.targetHour)+'</td><td>'+(x.real===null?'Pendiente':fmt(x.real))+'</td><td>'+(x.diff===null?'—':(x.diff>0?'+':'')+fmt(x.diff))+'</td><td>'+fmt(x.targetAccum)+'</td><td>'+(x.actualAccum===null?'—':fmt(x.actualAccum))+'</td></tr>').join('')+'</table></div>'+
+ (prior?'<p class="muted">Nota de conciliación: '+fmt(prior)+' piezas procesadas del total HU no están distribuidas en las horas visibles. Se incorporan solo al acumulado real inicial, no a la producción horaria.</p>':'');
 }
 
 function planVsReal(){
