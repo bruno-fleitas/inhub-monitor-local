@@ -289,11 +289,35 @@ function planVsReal(){
  host.querySelectorAll('[data-clear-plan]').forEach(btn=>btn.onclick=()=>{localStorage.removeItem(storeKey(btn.dataset.clearPlan));planVsReal()});
 }
 
+function curveHourRange(site){
+ const v=state.config.curveHourRanges?.[site]||{};
+ const from=Number.isInteger(v.from)?v.from:Math.max(0,Math.min(23,Number(state.config.curveStart??9)));
+ const to=Number.isInteger(v.to)?v.to:(from+23)%24;
+ return {from,to,hours:Array.from({length:(to-from+24)%24+1},(_,i)=>(from+i)%24)};
+}
+function curveRangeControls(site){
+ const {from,to}=curveHourRange(site);
+ const opts=selected=>Array.from({length:24},(_,h)=>'<option value="'+h+'"'+(h===selected?' selected':'')+'>'+String(h).padStart(2,'0')+':00</option>').join('');
+ return '<div class="toolbar curve-range" data-curve-range="'+site+'"><strong>Rango horario ED / TMS / vehículos / SPR</strong><label>Desde <select data-range-from>'+opts(from)+'</select></label><label>Hasta <select data-range-to>'+opts(to)+'</select></label><button class="primary" data-apply-curve-range="'+site+'">Aplicar rango</button><button class="secondary" data-reset-curve-range="'+site+'">Restablecer</button></div>';
+}
+function bindCurveRanges(){
+ document.querySelectorAll('[data-apply-curve-range]').forEach(btn=>btn.onclick=()=>{
+  const site=btn.dataset.applyCurveRange,el=document.querySelector('[data-curve-range="'+site+'"]');
+  state.config.curveHourRanges??={};
+  state.config.curveHourRanges[site]={from:Number(el.querySelector('[data-range-from]').value),to:Number(el.querySelector('[data-range-to]').value)};
+  curves();
+ });
+ document.querySelectorAll('[data-reset-curve-range]').forEach(btn=>btn.onclick=()=>{
+  const site=btn.dataset.resetCurveRange;
+  if(state.config.curveHourRanges)delete state.config.curveHourRanges[site];
+  curves();
+ });
+}
 function operationalHourMatrix(site){
  const d=state.sites[site],ed=d.registros?.byHour||null,tms=d.tms?.by||null,arr=d.arrivals?.h||d.registros?.vehiclesByHour||null;
  if(!ed&&!tms&&!arr)return '';
  const start=Math.max(0,Math.min(23,Number(state.config.curveStart??9)));
- const hours=Array.from({length:24},(_,i)=>(start+i)%24);
+ const hours=curveHourRange(site).hours;
  const values={ed:[],tms:[],acum:[],share:[],spr:[],vehicles:[]};
  let totalED=0,totalTMS=0,totalVeh=0,acc=0;
  for(const h of hours){
@@ -319,7 +343,7 @@ function operationalHourMatrix(site){
 function vehicleSprMatrix(site){
  const d=state.sites[site],a=d.arrivals,r=d.registros;
  const start=Math.max(0,Math.min(23,Number(state.config.curveStart??9)));
- const hours=Array.from({length:24},(_,i)=>(start+i)%24);
+ const hours=curveHourRange(site).hours;
  const ed=r?.byHour||null,vehicles=a?.h||r?.vehiclesByHour||null;
  if(!ed&&!vehicles)return '';
  const vehValues=hours.map(h=>vehicles?Number(vehicles[h]?.veh||0):null);
@@ -332,7 +356,7 @@ function vehicleSprMatrix(site){
  return '<section class="hour-matrix vehicle-spr-matrix"><h3>Vehículos y SPR por hora</h3><p class="muted">Vehículos: Arribos o registros únicos de Easy Docking (si no hay Arribos). Paquetes: reporte ED. SPR = paquetes ED / vehículos de la misma hora. Sin vehículos disponibles se muestra —; no se usan estimaciones.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>'+hours.map(h=>'<th>'+String(h).padStart(2,'0')+':00</th>').join('')+'<th>TOTAL</th></tr></thead><tbody>'+rows.map(([label,values,format,total])=>'<tr><th>'+label+'</th>'+values.map(x=>'<td>'+format(x)+'</td>').join('')+'<td class="matrix-total">'+total+'</td></tr>').join('')+'</tbody></table></div></section>';
 }
 function huGoalView(){const host=$('huplanView');if(!host)return;host.innerHTML=['soldati','echeverria'].map(site=>'<section class="plan-site"><h3>'+names[site]+'</h3>'+huHourlyGoalPlan(site)+'</section>').join('')}
-function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros)continue;h+=`<article class="card"><h2>${names[site]}</h2>${operationalHourMatrix(site)}${vehicleSprMatrix(site)}${vehicleDistribution(site)}${flowCurve(d,start)}${d.tms?.hu?`<section class="hu-hourly-moved"><h3>Bipeo HU por hora · ${names[site]}</h3>${huHourlyTable(huSeparateAir(d.tms).normal)}</section>`:""}<div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3><h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>'}
+function curves(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const d=state.sites[site];if(!d.tms&&!d.arrivals&&!d.registros)continue;h+=`<article class="card"><h2>${names[site]}</h2>${curveRangeControls(site)}${operationalHourMatrix(site)}${vehicleSprMatrix(site)}${vehicleDistribution(site)}${flowCurve(d,start)}${d.tms?.hu?`<section class="hu-hourly-moved"><h3>Bipeo HU por hora · ${names[site]}</h3>${huHourlyTable(huSeparateAir(d.tms).normal)}</section>`:""}<div class="cols">${d.arrivals?`<div><h3>Arribos</h3>${arrTable(d.arrivals,start)}${vehicleShareTable(d.arrivals)}<h4>Paquetes por hora</h4>${bars(d.arrivals.h,'ship',start)}</div>`:''}${d.tms?`<div><h3>TMS / Voluminoso</h3><h4>Inhub por hora</h4>${bars(d.tms.by,'tot',start)}</div>`:''}</div></article>`} $('curvesView').innerHTML=h||'<article class="card empty">Sin datos.</article>';bindCurveRanges()}
 function mix(){const start=state.config.curveStart;let h='';for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(!t)continue;const pure=Math.max(0,t.vol-t.big-t.sb),base=Math.max(0,t.totalConPost-t.big-t.sb);h+=`<article class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol,t.totalConPost))}%</small></div><div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure,base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div></div>${packagePie(t)}${tmsTable(t,start)}</article>`} $('mixView').innerHTML=h||'<article class="card empty">Sin TMS.</article>'}
 
 function cfg(site){const t=state.sites[site].tms;if(!t)return null;const mp=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));const groups=t.subcaGroups.map(g=>{const x=mp.get(String(g.subca).trim().toUpperCase());return{...g,ola:x?.ola||'',cpt:x?.cpt??'',indicador:x?.indicador||''}});return{total:t.totalConPost,groups,unknown:groups.filter(g=>g.subca!=='SIN SUBCA'&&!mp.has(String(g.subca).trim().toUpperCase()))}}
