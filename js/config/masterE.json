@@ -222,12 +222,6 @@
     "indicador": "prioritario"
   },
   {
-    "subca": "OCS063",
-    "ola": "roja",
-    "cpt": 2,
-    "indicador": "prioritario"
-  },
-  {
     "subca": "OCS067",
     "ola": "amarillo",
     "cpt": 2,
@@ -468,12 +462,6 @@
     "indicador": "prioritario"
   },
   {
-    "subca": "OCA291",
-    "ola": "azul",
-    "cpt": 5,
-    "indicador": "prioritario"
-  },
-  {
     "subca": "PCK390_",
     "ola": "azul",
     "cpt": 5,
@@ -585,6 +573,18 @@
     "subca": "SDE1",
     "ola": "amarillo",
     "cpt": 2,
+    "indicador": "prioritario"
+  },
+  {
+    "subca": "FBA3_R",
+    "ola": "verde",
+    "cpt": 8,
+    "indicador": "standard"
+  },
+  {
+    "subca": "SLR1",
+    "ola": "azul",
+    "cpt": 4,
     "indicador": "prioritario"
   }
 ]
