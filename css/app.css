@@ -343,3 +343,5 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .hour-matrix tbody tr:last-child td{color:#7be3d4;font-weight:750}
 #curvesView .cols .scroll table th,#curvesView .cols .scroll table td{padding:5px 7px;font-size:11px}
 #curvesView .cols h3,#curvesView .cols h4{margin:9px 0 6px}
+
+.flow-point-scroll{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;background:#101e34;border-radius:10px;margin:12px 0}.flow-point-svg{display:block;max-width:none}.vehicle-spr-matrix{margin-top:12px;margin-bottom:22px}.vehicle-spr-matrix tbody tr:last-child td{color:#5de2c2}
