@@ -749,7 +749,8 @@ function bindDotControls(){
 function huControl(){
   for(const [site,id] of [['soldati','huViewSoldati'],['echeverria','huViewEcheverria']]){
     const t=state.sites[site].tms;
-    $(id).innerHTML=t?.hu?huDashboard(site,t):'<div class="card empty">Procesá el TMS de '+names[site]+' para ver su Control HU.</div>';
+    const target=$(id);if(!target){console.warn('Control HU: contenedor no encontrado:',id);continue}
+    target.innerHTML=t?.hu?huDashboard(site,t):'<div class="card empty">Procesá el TMS de '+names[site]+' para ver su Control HU.</div>';
   }
   bindHuControls();
   document.querySelectorAll('[data-arrival-apply]').forEach(b=>b.onclick=()=>{const site=b.dataset.arrivalApply,sel=document.querySelector(`[data-arrival-start="${site}"]`);if(!sel)return;huConfig(site).arrivalStartHour=Number(sel.value);huControl();});
