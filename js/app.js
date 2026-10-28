@@ -737,7 +737,7 @@ function dotMonitor(site,t){
 function bindDotControls(){
  document.querySelectorAll('[data-dot-objective]').forEach(el=>el.onchange=()=>{dotTarget(el.dataset.dotObjective).objective=Math.max(0,Math.min(100,Number(el.value)||99.55));huControl()});
  document.querySelectorAll('[data-dot-filter]').forEach(el=>el.onchange=()=>{dotTarget(el.dataset.site)[el.dataset.dotFilter]=el.type==='checkbox'?el.checked:el.value;huControl()});
- document.querySelectorAll('[data-dot-multi]').forEach(el=>el.onchange=()=>{const site=el.dataset.site,field=el.dataset.dotMulti,c=dotTarget(site);const all=[...document.querySelectorAll('[data-dot-multi="'+field+'"][data-site="'+site+'"]')];const selected=all.filter(x=>x.checked).map(x=>x.value);c[field]=selected.length===all.length?[]:(selected.length?selected:['__NONE__']);huControl()});
+ document.querySelectorAll('[data-dot-multi]').forEach(el=>el.onchange=()=>{const site=el.dataset.site,field=el.dataset.dotMulti,c=dotTarget(site);const all=[...document.querySelectorAll('[data-dot-multi="'+field+'"][data-site="'+site+'"]')];const selected=all.filter(x=>x.checked).map(x=>x.value);c[field]=selected.length===all.length?[]:(selected.length?selected:['__NONE__']);const open=el.closest('details')?.open;huControl();if(open){const d=document.querySelector('[data-dot-multi="'+field+'"][data-site="'+site+'"]')?.closest('details');if(d)d.open=true}});
  document.querySelectorAll('[data-dot-select-all]').forEach(el=>el.onclick=()=>{dotTarget(el.dataset.site)[el.dataset.dotSelectAll]=[];huControl()});
  document.querySelectorAll('[data-dot-clear]').forEach(el=>el.onclick=()=>{dotTarget(el.dataset.site)[el.dataset.dotClear]=['__NONE__'];huControl()});
  document.querySelectorAll('[data-dot-detail]').forEach(btn=>btn.onclick=()=>{
