@@ -1,6 +1,6 @@
 const TEXT_DECODER=new TextDecoder('utf-8');
 const norm=s=>String(s??'').replace(/[\u00A0\u2007\u202F]/g,' ').replace(/[\r\n\t]+/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/\s+/g,' ');
-function num(v){if(typeof v==='number')return Number.isFinite(v)?v:0;const n=Number(String(v??'').trim().replace(/\./g,'').replace(',','.'));return isFinite(n)?n:0}
+function num(v){if(typeof v==='number')return Number.isFinite(v)?v:0;let s=String(v??'').trim().replace(/\s/g,'');if(!s||/^null$/i.test(s))return 0;const comma=s.lastIndexOf(','),dot=s.lastIndexOf('.');if(comma>=0&&dot>=0){s=comma>dot?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'')}else if(comma>=0){s=s.replace(',','.')}const n=Number(s);return Number.isFinite(n)?n:0}
 function parts(v){
  if(v==null||v==='')return null;const s=String(v).trim();
  let m=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
@@ -18,7 +18,7 @@ function classify(w,h,l,wi){w=num(w);h=num(h);l=num(l);wi=num(wi);const kg=w/100
 function line(line,delim){const out=[];let f='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(q){if(c==='"'&&line[i+1]==='"'){f+='"';i++}else if(c==='"')q=false;else f+=c}else{if(c==='"')q=true;else if(c===delim){out.push(f);f=''}else f+=c}}out.push(f);return out}
 const delim=s=>(s.split(';').length>s.split(',').length?';':',');
 function idx(h,names){const m=new Map(h.map((x,i)=>[norm(x),i]));for(const n of names){const i=m.get(norm(n));if(i!==undefined)return i}return-1}
-const val=(r,i)=>i>=0?(r[i]??''):'';
+const val=(r,i)=>{const v=i>=0?(r[i]??''):'';return typeof v==='string'&&/^\s*null\s*$/i.test(v)?'':v};
 const statusOf=s=>String(s??'').replace(/dispatched/g,'HU despachado').replace(/in_dispatch/g,'HU en despacho').replace(/outbound_finished/g,'HU finalizado');
 const ETIQ=new Set(['authorized_by_carrier','devolution_HU despachado','devolution_HU en despacho','devolution_HU finalizado','devolution_in_hub_reject','HU despachado','HU en despacho','HU finalizado','in_hub','in_hub_finished','in_hub_reject','in_packing_list','label_printed','no_choices_available','not_manifested_to_carrier','not_received_on_carrier']);
 const ABIERTO=new Set(['in_packing_list']);
