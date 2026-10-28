@@ -74,8 +74,8 @@ function tmsHourlyVelocity(t){
 function huInhubMini(site){
  const d=state.sites[site],t=d.tms,r=d.registros,a=d.arrivals;
  const fc=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
- const arrived=r?.packages??a?.totalShip??null;
  const startHour=Math.max(0,Math.min(23,Number(huConfig(site).inhubStartHour??0)));
+ const arrived=r?.byHour?.length?r.byHour.reduce((sum,qty,h)=>sum+(h>=startHour?Number(qty||0):0),0):(r?.packages??a?.totalShip??null);
  const bipeado=t?(t.by?.length?t.by.reduce((sum,h,i)=>sum+(i>=startHour?Number(h.tot||0):0),0):t.totalConPost):null;
  const last=t?.maxInTs||r?.lastTs||null;
  const clock=last?new Date(last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'—';
