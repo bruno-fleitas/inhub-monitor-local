@@ -68,7 +68,8 @@ function huInhubMini(site){
  const d=state.sites[site],t=d.tms,r=d.registros,a=d.arrivals;
  const fc=Number($(site==='soldati'?'fcS':'fcE')?.value)||0;
  const arrived=r?.packages??a?.totalShip??null;
- const bipeado=t?.totalConPost??null;
+ const startHour=Math.max(0,Math.min(23,Number(huConfig(site).inhubStartHour??0)));
+ const bipeado=t?(t.by?.length?t.by.reduce((sum,h,i)=>sum+(i>=startHour?Number(h.tot||0):0),0):t.totalConPost):null;
  const last=t?.maxInTs||r?.lastTs||null;
  const clock=last?new Date(last).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}):'—';
  const hourly=r?.currentHourPackages??null;
@@ -76,7 +77,7 @@ function huInhubMini(site){
  const val=n=>n===null?'—':nf.format(Math.round(n));
  const percentage=n=>fc&&n!==null?pf.format(pct(n,fc))+'%':'—';
  const row=(name,n,p)=>'<tr><td>'+name+'</td><td>'+val(n)+'</td><td>'+p+'</td></tr>';
- return '<div class="hu-inhub-mini"><h3>Resumen Inhub · Descarga</h3><div class="hu-inhub-time">Últ. actualización <b>'+clock+'</b></div><table class="hu-table compact"><tr><th>Indicador</th><th>Piezas</th><th>% proy.</th></tr>'+
+ return '<div class="hu-inhub-mini"><h3>Resumen Inhub · Descarga</h3><small>Inicio Inhub: '+String(startHour).padStart(2,'0')+':00 · Bipeado filtrado por hora de Inbound Date Included.</small><div class="hu-inhub-time">Últ. actualización <b>'+clock+'</b></div><table class="hu-table compact"><tr><th>Indicador</th><th>Piezas</th><th>% proy.</th></tr>'+
  row('Proyectado',fc||null,fc?'100,0%':'—')+
  row('Arribado',arrived,percentage(arrived))+
  row('Bipeado Inhub',bipeado,percentage(bipeado))+
@@ -325,6 +326,7 @@ function huConfig(site){
   state.config.hu[site] ??= {prod:190,objective:65,cptObjective:99.5,targetTime:'05:00',activeMinutes:10,huStartHour:7,huCutoff:'',connectedMode:'unique'};
   state.config.hu[site].objective ??= 65;
   state.config.hu[site].targetPct ??= 65;
+  state.config.hu[site].inhubStartHour ??= 0;
   return state.config.hu[site];
 }
 function huCptRows(site,t){
@@ -394,7 +396,7 @@ function huDashboard(site,originalT){
   return `<section class="hu-dashboard" data-hu-site="${site}">
     <div class="hu-head">
       <div><span class="hu-brand">OCASA</span><h2>${names[site]} · Control HU</h2><small>Última actualización HU <b>${update}</b> · conectados = actividad dentro de los últimos ${cfg.activeMinutes} min</small></div>
-      <div class="hu-head-actions"><label>Corte de análisis (opcional)<input type="time" data-hucutoff="${site}" value="${cfg.huCutoff||''}"></label><button class="smallbtn primary" data-cutapply="${site}">Aplicar corte</button><button class="smallbtn" data-cutclear="${site}">Limpiar corte</button><label>Inicio Inhub TMS (HU)<select data-hustart="${site}">${Array.from({length:24},(_,i)=>`<option value="${i}" ${i===(cfg.huStartHour??7)?'selected':''}>${String(i).padStart(2,'0')}:00</option>`).join('')}</select></label><button class="smallbtn primary" data-huapply="${site}">Aplicar horario</button>
+      <div class="hu-head-actions"><label>Corte de análisis (opcional)<input type="time" data-hucutoff="${site}" value="${cfg.huCutoff||''}"></label><button class="smallbtn primary" data-cutapply="${site}">Aplicar corte</button><button class="smallbtn" data-cutclear="${site}">Limpiar corte</button><label>Inicio HU (base Inhub TMS)<select data-hustart="${site}">${Array.from({length:24},(_,i)=>`<option value="${i}" ${i===(cfg.huStartHour??7)?'selected':''}>${String(i).padStart(2,'0')}:00</option>`).join('')}</select></label><button class="smallbtn primary" data-huapply="${site}">Aplicar horario</button><label>Inicio Inhub<select data-inhubstart="${site}">${Array.from({length:24},(_,i)=>`<option value="${i}" ${i===(cfg.inhubStartHour??0)?'selected':''}>${String(i).padStart(2,'0')}:00</option>`).join('')}</select></label><button class="smallbtn primary" data-inhubapply="${site}">Aplicar Inhub</button>
         <label>Hora objetivo<input type="time" data-hucfg="targetTime" data-site="${site}" value="${cfg.targetTime}"></label>
         <label>Objetivo avance %<input type="number" min="0" max="100" step="0.1" data-hucfg="targetPct" data-site="${site}" value="${cfg.targetPct}"></label><label>Prod. objetivo pza/h<input type="number" data-hucfg="prod" data-site="${site}" value="${cfg.prod}"></label>
         <label>Verde desde %<input type="number" min="0" max="100" step="0.1" data-hucfg="objective" data-site="${site}" value="${cfg.objective}"></label><label>Obj. cierre CPT %<input type="number" step="0.1" data-hucfg="cptObjective" data-site="${site}" value="${cfg.cptObjective}"></label><label>Conteo conectados<select data-hucfg="connectedMode" data-site="${site}"><option value="unique" ${cfg.connectedMode!=='byCpt'?'selected':''}>Sin duplicados</option><option value="byCpt" ${cfg.connectedMode==='byCpt'?'selected':''}>Con duplicados (por CPT)</option></select></label><label>Ventana conectados (min)<input type="number" min="1" max="120" step="1" data-hucfg="activeMinutes" data-site="${site}" value="${cfg.activeMinutes}"></label>
@@ -567,6 +569,7 @@ function huControl(){
   for(const site of ['soldati','echeverria']){const t=state.sites[site].tms;if(t?.hu)h+=huDashboard(site,t)}
   $('huView').innerHTML=h||'<div class="card empty">Procesá un TMS para ver el Control HU.</div>';
   bindHuControls();
+  document.querySelectorAll('[data-inhubapply]').forEach(b=>b.onclick=()=>{const site=b.dataset.inhubapply,sel=document.querySelector(`[data-inhubstart="${site}"]`);if(!sel)return;huConfig(site).inhubStartHour=Number(sel.value);huControl();});
   document.querySelectorAll('[data-huapply]').forEach(b=>b.onclick=async()=>{const site=b.dataset.huapply,sel=document.querySelector(`[data-hustart="${site}"]`);if(!sel)return;huConfig(site).huStartHour=Number(sel.value);if(!state.sites[site].files.tms)return;const prev=b.textContent;b.disabled=true;b.textContent='Recalculando...';try{state.sites[site].tms=await runT(site);renderAll()}catch(e){alert('No se pudo recalcular el Control HU: '+e.message);b.disabled=false;b.textContent=prev}});
   document.querySelectorAll('[data-cutapply],[data-cutclear]').forEach(b=>b.onclick=async()=>{
     const site=b.dataset.cutapply||b.dataset.cutclear,clear=!!b.dataset.cutclear;
