@@ -943,6 +943,7 @@ $('processBtn').onclick=async()=>{
   state.config.analysisDate=$('analysisDate').value||null;
   state.config.curveStart=+$('curveStart').value||9;state.config.cptStart.soldati=+$('cptS').value||10;state.config.cptStart.echeverria=+$('cptE').value||10;
   if($('jorDate'))$('jorDate').value=state.config.analysisDate||$('jorDate').value;
+  for(const site of ['soldati','echeverria'])dotExclusions[site].clear();
   const jobs=[];
   for(const site of ['soldati','echeverria']){
     if(state.sites[site].files.tms)jobs.push([site,'tms']);
