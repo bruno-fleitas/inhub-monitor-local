@@ -866,7 +866,7 @@ function reportPreview(){
   const cards=[];
   const add=(label,value,detail='')=>cards.push('<div class="report-kpi"><span>'+label+'</span><b>'+value+'</b>'+(detail?'<small>'+detail+'</small>':'')+'</div>');
   const last=r?.lastTs||t?.maxInTs||null;
-  add('Actualización de datos',last?new Date(last).toLocaleString('es-AR'):'—');
+  add('Último registro de datos',last?new Date(last).toLocaleString('es-AR'):'—');
   if(t){add('Inhub',nf.format(t.totalConPost),projected?percent(pct(t.totalConPost,projected))+' del proyectado':'');add('Voluminoso sin B/SB',percent(pct(pure,t.totalConPost)));add('Voluminoso con B/SB',percent(pct(t.vol,t.totalConPost)))}
   if(hu)add('Avance HU',percent(hu.avance),nf.format(hu.pendiente)+' pendientes');
   if(r||x.a)add('SPR general',r?.vehicles&&r?.packages?pf.format(r.packages/r.vehicles)+' pza/veh.':'—','Paquetes ED / vehículos de Registros');
