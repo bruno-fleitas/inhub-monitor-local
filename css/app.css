@@ -500,3 +500,5 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
  #view-reporte .report-site .report-detail .report-compact-table th,
  #view-reporte .report-site .report-detail .report-compact-table td{padding:8px 6px}
 }
+
+#view-reporte .report-projection strong{display:block;min-width:185px;padding:10px 14px;border:1px solid #c8d5e5;border-radius:7px;background:#fff;text-align:center;color:#12365d;font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
