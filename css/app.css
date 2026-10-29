@@ -479,3 +479,24 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 #view-reporte .report-compact-table tbody tr:nth-child(even) td{background:#f5f8fd}
 #view-reporte .report-compact-table tbody tr:hover td{background:#e9f2ff}
 @media(max-width:700px){#view-reporte .report-site{padding:12px}#view-reporte .report-site .report-kpis>.report-kpi b{font-size:19px}#view-reporte .report-compact-table th,#view-reporte .report-compact-table td{padding:8px 5px}}
+
+/* Reporte gerencial: tablas compactas y cifras legibles, ambos sites */
+#view-reporte .report-site .report-detail:has(.report-compact-table){max-width:1120px;margin-left:auto;margin-right:auto}
+#view-reporte .report-site .report-detail:has(.report-compact-table)>h4{text-align:center}
+#view-reporte .report-site .report-detail .report-compact-table{width:100%;max-width:100%;margin:0 auto;table-layout:auto;font-size:14px}
+#view-reporte .report-site .report-detail .report-compact-table th,
+#view-reporte .report-site .report-detail .report-compact-table td{padding:9px 12px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+#view-reporte .report-site .report-detail .report-compact-table tbody td{font-size:16px;font-weight:800;color:#102f56}
+#view-reporte .report-site .report-detail .report-compact-table tbody th{font-size:14px;font-weight:800}
+#view-reporte .report-site .report-detail .report-compact-table thead th{font-size:13px;font-weight:800}
+#view-reporte .report-site .report-detail:has(.report-compact-table thead th:nth-child(3):last-child){max-width:760px}
+#view-reporte .report-site .report-detail:has(.report-compact-table thead th:nth-child(3):last-child) .report-compact-table th,
+#view-reporte .report-site .report-detail:has(.report-compact-table thead th:nth-child(3):last-child) .report-compact-table td{width:33.333%}
+#view-reporte .report-site .report-detail:has(.report-compact-table thead th:nth-child(8):last-child){max-width:1120px;overflow-x:auto}
+#view-reporte .report-site .report-detail:has(.report-compact-table thead th:nth-child(8):last-child) .report-compact-table{min-width:790px}
+#view-reporte .report-site .report-detail:has(.report-compact-table thead th:nth-child(8):last-child) .report-compact-table tbody td{font-size:14px}
+@media(max-width:850px){
+ #view-reporte .report-site .report-detail:has(.report-compact-table thead th:nth-child(3):last-child){max-width:100%}
+ #view-reporte .report-site .report-detail .report-compact-table th,
+ #view-reporte .report-site .report-detail .report-compact-table td{padding:8px 6px}
+}
