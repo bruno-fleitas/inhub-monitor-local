@@ -865,6 +865,8 @@ function reportPreview(){
   return raw===null?fallback:Math.max(0,Number(raw)||0);
  };
  const windows=[['pre14',14],['pre16',16],['pre17',17],['pre18',18],['post20',20]];
+ const reportRange=site=>{const a=Number(localStorage.getItem('inhubReportRangeFrom_'+site)),b=Number(localStorage.getItem('inhubReportRangeTo_'+site));return{from:Number.isInteger(a)&&a>=0&&a<=23?a:9,to:Number.isInteger(b)&&b>=0&&b<=23?b:22}};
+ const hourOptions=selected=>Array.from({length:24},(_,h)=>'<option value="'+h+'"'+(h===selected?' selected':'')+'>'+String(h).padStart(2,'0')+':00</option>').join('');
  const getStart=site=>{const raw=localStorage.getItem('inhubReportStart_'+site);const n=raw===null?9:Number(raw);return Number.isInteger(n)&&n>=0&&n<=13?n:9;};
  const hourCount=(series,limit,kind,startHour)=>{
   if(!series)return null;
@@ -879,6 +881,8 @@ function reportPreview(){
   const ed=r?.byHour||null,projected=x.fc;
   const packagePlan=getPlan(x.site,'packages',projected);
   const startHour=getStart(x.site);
+  const range=reportRange(x.site);
+  const rangeHours=Array.from({length:(range.to-range.from+24)%24+1},(_,i)=>(range.from+i)%24);
   const vehiclePlan=vehSum;
   const pure=t?Math.max(0,t.vol-t.big-t.sb):null;
   const cards=[];
@@ -896,9 +900,13 @@ function reportPreview(){
     return '<tr><th>'+label+'</th><td>'+nf.format(n)+'</td><td>'+(plan>0?percent(pct(n,plan)):(type==='vehicles'?'Sin vehículos':'Definir proyectado'))+'</td></tr>';
    }).join('')+'</tbody></table></div>';
   };
+  const hourly=(title,series,key)=>{if(!series)return '';let accum=0;const vals=rangeHours.map(h=>{const item=series[h];const n=Number(key==='veh'?item?.veh:key==='packages'?item:item?.[key])||0;accum+=n;return {h,n,accum}});const total=accum;return '<div class="report-detail"><h4>'+title+' · '+String(range.from).padStart(2,'0')+':00 a '+String(range.to).padStart(2,'0')+':59</h4><div class="hour-matrix-scroll"><table class="report-compact-table"><thead><tr><th>Hora</th><th>Ingresado</th><th>Acumulado</th><th>% del rango</th></tr></thead><tbody>'+vals.map(v=>'<tr><td>'+String(v.h).padStart(2,'0')+':00</td><td>'+nf.format(v.n)+'</td><td>'+nf.format(v.accum)+'</td><td>'+(total?percent(pct(v.accum,total)):'—')+'</td></tr>').join('')+'<tr><th>TOTAL</th><th>'+nf.format(total)+'</th><th>'+nf.format(total)+'</th><th>'+(total?'100%':'—')+'</th></tr></tbody></table></div></div>';};
   const plans='<div class="report-detail"><h4>Base de cálculo · cortes horarios</h4><div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end"><label class="report-projection">Proyectado paquetes <input type="number" min="0" step="1" data-report-plan="packages" data-report-site="'+x.site+'" value="'+(packagePlan||'')+'" placeholder="Ingresar paquetes"></label><div class="report-projection"><span>Total real de vehículos</span><strong>'+(source?nf.format(vehSum):'Sin datos')+'</strong></div><label class="report-projection">Inicio PRE <select data-report-start="'+x.site+'">'+Array.from({length:14},(_,h)=>'<option value="'+h+'"'+(h===startHour?' selected':'')+'>'+String(h).padStart(2,'0')+':00</option>').join('')+'</select></label></div><small>PRE: acumulado desde las '+String(startHour).padStart(2,'0')+':00 hasta antes del horario indicado (ej.: pre14 hasta 13:59). POST20: desde las 20:00 hasta antes de las 09:00 del día siguiente. Paquetes ÷ proyectado; vehículos ÷ total real.</small></div>';
-  return '<section class="report-site"><h3>'+x.name+'</h3>'+plans+'<div class="report-kpis">'+cards.join('')+'</div>'+table('Paquetes · Registros descarga',ed,packagePlan,'packages')+table('Vehículos · Arribos',source,vehiclePlan,'vehicles')+huTable+'</section>';
+  const rangePanel='<div class="report-detail"><h4>Curvas por rango horario · Registros descarga</h4><div style="display:flex;flex-wrap:wrap;gap:14px;align-items:end;justify-content:center"><label class="report-projection">Desde <select data-report-range-from="'+x.site+'">'+hourOptions(range.from)+'</select></label><label class="report-projection">Hasta <select data-report-range-to="'+x.site+'">'+hourOptions(range.to)+'</select></label></div><small>Acumulados y porcentajes calculados sobre el total del rango seleccionado. Los cortes PRE y POST20 anteriores conservan su propia definición.</small></div>';
+  const typeTables=source?[['Chasis','chasis'],['Camioneta','camioneta'],['Semi','semi']].map(([label,key])=>hourly('Vehículos '+label,source,key)).join(''):'';
+  return '<section class="report-site"><h3>'+x.name+'</h3>'+plans+'<div class="report-kpis">'+cards.join('')+'</div>'+table('Paquetes · Registros descarga',ed,packagePlan,'packages')+table('Vehículos · Arribos',source,vehiclePlan,'vehicles')+rangePanel+hourly('Paquetes ED · hora y acumulado',ed,'packages')+hourly('Vehículos · hora y acumulado',source,'veh')+typeTables+huTable+'</section>';
  }).join('')+'</div>';
+ host.querySelectorAll('[data-report-range-from], [data-report-range-to]').forEach(el=>el.addEventListener('change',()=>{const site=el.dataset.reportRangeFrom||el.dataset.reportRangeTo;localStorage.setItem('inhubReportRange'+(el.dataset.reportRangeFrom?'From_':'To_')+site,el.value);reportPreview();}));
  host.querySelectorAll('[data-report-start]').forEach(input=>input.addEventListener('change',()=>{localStorage.setItem('inhubReportStart_'+input.dataset.reportStart,input.value);reportPreview();}));
  host.querySelectorAll('[data-report-plan]').forEach(input=>input.addEventListener('change',()=>{
   const n=Number(input.value);
