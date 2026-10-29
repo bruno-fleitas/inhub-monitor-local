@@ -841,17 +841,36 @@ function reportAlerts(x){
  return out;
 }
 function reportPreview(){
- const data=reportData();if(!$('reportView'))return;
- if(!data.length){$('reportView').innerHTML='<div class="empty">Procesá uno o más archivos para generar el reporte.</div>';return}
- $('reportView').innerHTML=`<div class="report-sites">${data.map(x=>`<section class="report-site"><h3>${x.name}</h3><div class="report-kpis">
- ${x.t?`<div><span>Inhub</span><b>${nf.format(x.t.totalConPost)}</b><small>${x.fc?pf.format(pct(x.t.totalConPost,x.fc))+'% forecast':''}</small></div><div><span>Voluminoso</span><b>${pf.format(pct(x.t.vol,x.t.totalConPost))}%</b><small>c/B+SB</small></div><div><span>MELI Air HU</span><b>${pf.format(pct(x.t.meli.processed,x.t.meli.arrivals))}%</b></div>`:''}
- ${x.lab?.processed!=null?`<div><span>Labelless HU</span><b>${pf.format(pct(x.lab.processed,x.lab.arrived))}%</b></div>`:''}
- ${x.hu?`<div><span>Avance HU</span><b>${pf.format(x.hu.avance)}%</b><small>${nf.format(x.hu.pendiente)} pendientes</small></div><div><span>Conectados / necesarios</span><b>${x.hu.active} / ${x.hu.need}</b><small>brecha ${x.hu.gap>=0?'+':''}${x.hu.gap}</small></div>`:''}
- ${x.speed.real!=null?`<div><span>Velocidad descarga</span><b>${nf.format(Math.round(x.speed.real))}</b><small>pza/h</small></div>`:''}
- ${x.a?`<div><span>Vehículos</span><b>${nf.format(x.a.veh)}</b><small>${nf.format(x.a.totalShip)} paquetes</small></div>`:''}
- ${x.q?`<div><span>Jornales</span><b>${nf.format(x.q.total)}</b><small>${pf.format(pct(x.q.c,x.q.total))}% antiguos</small></div>`:''}
- </div><div class="report-alerts">${reportAlerts(x).map(v=>'<p>• '+esc(v)+'</p>').join('')}</div></section>`).join('')}</div>`;
+ const data=reportData(),host=$('reportView');if(!host)return;
+ if(!data.length){host.innerHTML='<div class="empty">Procesá uno o más archivos para generar el reporte.</div>';return}
+ const percent=n=>pf.format(n)+'%';
+ host.innerHTML='<div class="report-sites">'+data.map(x=>{
+  const r=x.r, t=x.t, hu=x.hu, source=r?.vehiclesByHour||x.a?.h;
+  const vehicleTypes=[['Chasis','chasis'],['Camioneta (incluye MELI)','camioneta'],['Semi','semi']];
+  const vehTotals=vehicleTypes.map(([label,key])=>({label,n:source?source.reduce((sum,h)=>sum+Number(h?.[key]||0),0):0}));
+  const vehSum=source?source.reduce((sum,h)=>sum+Number(h?.veh||0),0):0;
+  const ed=r?.byHour||null, projected=x.fc;
+  const pre=[['PRE 14:00',9,14],['PRE 16:00',9,16],['PRE 17:00',9,17],['PRE 18:00',9,18]];
+  const cuts=ed?[...pre.map(([label,start,end])=>({label,n:ed.slice(start,end).reduce((v,n)=>v+Number(n||0),0)})),{label:'POST 20:00',n:ed.slice(20).reduce((v,n)=>v+Number(n||0),0)+ed.slice(0,9).reduce((v,n)=>v+Number(n||0),0)}]:[];
+  const pure=t?Math.max(0,t.vol-t.big-t.sb):null;
+  const cards=[];
+  const add=(label,value,detail='')=>cards.push('<div class="report-kpi"><span>'+label+'</span><b>'+value+'</b>'+(detail?'<small>'+detail+'</small>':'')+'</div>');
+  const last=r?.lastTs||t?.maxInTs||null;
+  add('Actualización de datos',last?new Date(last).toLocaleString('es-AR'):'—');
+  if(t){add('Inhub',nf.format(t.totalConPost),projected?percent(pct(t.totalConPost,projected))+' del proyectado':'');add('Voluminoso sin B/SB',percent(pct(pure,t.totalConPost)));add('Voluminoso con B/SB',percent(pct(t.vol,t.totalConPost)))}
+  if(hu)add('Avance HU',percent(hu.avance),nf.format(hu.pendiente)+' pendientes');
+  if(r||x.a)add('SPR general',r?.vehicles&&r?.packages?pf.format(r.packages/r.vehicles)+' pza/veh.':'—','Paquetes ED / vehículos de Registros');
+  if(source)vehTotals.forEach(v=>add(v.label,nf.format(v.n),percent(pct(v.n,vehSum))+' de '+nf.format(vehSum)+' vehículos'));
+  const huTable=hu?'<div class="report-detail"><h4>Armado de HU · General (sin MELI Air)</h4><div class="hour-matrix-scroll"><table class="report-compact-table"><thead><tr><th>CPT</th><th>Etiquetado</th><th>HU abierto</th><th>HU cerrado</th><th>Pend. HU</th><th>% Avance</th><th>% Share</th><th>Users activos</th></tr></thead><tbody>'+hu.cpts.map(c=>'<tr><td>'+esc(c.cpt)+'</td><td>'+nf.format(c.etiquetado)+'</td><td>'+nf.format(c.abierto)+'</td><td>'+nf.format(c.cerrado)+'</td><td>'+nf.format(c.pendiente)+'</td><td>'+percent(c.avance)+'</td><td>'+percent(pct(c.etiquetado,hu.etiquetado))+'</td><td>'+c.users.size+'</td></tr>').join('')+'<tr><th>Total</th><th>'+nf.format(hu.etiquetado)+'</th><th>'+nf.format(hu.abierto)+'</th><th>'+nf.format(hu.cerrado)+'</th><th>'+nf.format(hu.pendiente)+'</th><th>'+percent(hu.avance)+'</th><th>100%</th><th>'+hu.active+'</th></tr></tbody></table></div></div>':'';
+  return '<section class="report-site"><h3>'+x.name+'</h3><label class="report-projection">Proyectado de descarga <input type="number" min="0" step="1" data-report-forecast="'+x.site+'" value="'+(projected||'')+'" placeholder="Ingresar proyectado"></label><div class="report-kpis">'+cards.join('')+'</div>'+(ed?'<div class="report-detail"><h4>Curva de descarga · Registros descarga</h4><table class="report-compact-table"><thead><tr><th>Corte</th><th>Paquetes</th><th>% del proyectado</th></tr></thead><tbody>'+cuts.map(c=>'<tr><th>'+c.label+'</th><td>'+nf.format(c.n)+'</td><td>'+(projected?percent(pct(c.n,projected)):'Definir proyectado')+'</td></tr>').join('')+'</tbody></table><small>PRE acumulado desde las 09:00 hasta antes de la hora indicada. POST desde las 20:00, incluyendo la madrugada hasta antes de las 09:00. Registros descarga excluye horas 01:00 y 02:00 según la configuración actual.</small></div>':'')+huTable+'</section>';
+ }).join('')+'</div>';
+ host.querySelectorAll('[data-report-forecast]').forEach(input=>input.addEventListener('change',()=>{
+  const site=input.dataset.reportForecast,target=$(site==='soldati'?'fcS':'fcE');
+  if(target){target.value=input.value;target.dispatchEvent(new Event('change',{bubbles:true}))}
+  reportPreview();
+ }));
 }
+
 let pptPromise=null;
 function loadPptx(){
  if(window.PptxGenJS)return Promise.resolve();
