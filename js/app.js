@@ -849,9 +849,10 @@ function reportPreview(){
   return raw===null?fallback:Math.max(0,Number(raw)||0);
  };
  const windows=[['pre14',14],['pre16',16],['pre17',17],['pre18',18],['post20',20]];
- const hourCount=(series,limit,kind)=>{
+ const getStart=site=>{const raw=localStorage.getItem('inhubReportStart_'+site);const n=raw===null?9:Number(raw);return Number.isInteger(n)&&n>=0&&n<=13?n:9;};
+ const hourCount=(series,limit,kind,startHour)=>{
   if(!series)return null;
-  const hours=kind==='post'?Array.from({length:13},(_,i)=>(20+i)%24):Array.from({length:Math.max(0,limit-9)},(_,i)=>i+9);
+  const hours=kind==='post'?Array.from({length:13},(_,i)=>(20+i)%24):Array.from({length:Math.max(0,limit-startHour)},(_,i)=>i+startHour);
   return hours.reduce((sum,h)=>sum+(Number(series[h]?.veh??series[h]??0)||0),0);
  };
  host.innerHTML='<div class="report-sites">'+data.map(x=>{
@@ -861,12 +862,13 @@ function reportPreview(){
   const vehSum=source?source.reduce((sum,h)=>sum+Number(h?.veh||0),0):0;
   const ed=r?.byHour||null,projected=x.fc;
   const packagePlan=getPlan(x.site,'packages',projected);
+  const startHour=getStart(x.site);
   const vehiclePlan=vehSum;
   const pure=t?Math.max(0,t.vol-t.big-t.sb):null;
   const cards=[];
   const add=(label,value,detail='')=>cards.push('<div class="report-kpi"><span>'+label+'</span><b>'+value+'</b>'+(detail?'<small>'+detail+'</small>':'')+'</div>');
   add('Total vehículos ingresados',source?nf.format(vehSum):'—');
-  if(t){add('Inhub',nf.format(t.totalConPost),projected?percent(pct(t.totalConPost,projected))+' del proyectado':'');add('Voluminoso sin B/SB',percent(pct(pure,t.totalConPost)));add('Voluminoso con B/SB',percent(pct(t.vol,t.totalConPost)))}
+  if(t){add('Inhub',nf.format(t.totalConPost),packagePlan?percent(pct(t.totalConPost,packagePlan))+' del proyectado':'');add('Voluminoso sin B/SB',percent(pct(pure,t.totalConPost)));add('Voluminoso con B/SB',percent(pct(t.vol,t.totalConPost)))}
   if(hu)add('Avance HU',percent(hu.avance),nf.format(hu.pendiente)+' pendientes');
   if(r||x.a)add('SPR general',r?.vehicles&&r?.packages?pf.format(r.packages/r.vehicles)+' pza/veh.':'—','Paquetes ED / vehículos de Registros');
   if(source)vehTotals.forEach(v=>add(v.label,nf.format(v.n),percent(pct(v.n,vehSum))+' de '+nf.format(vehSum)+' vehículos'));
@@ -874,13 +876,14 @@ function reportPreview(){
   const table=(title,series,plan,type)=>{
    if(!series)return '<div class="report-detail"><h4>'+title+'</h4><p class="muted">Cargá los datos correspondientes para ver los cortes.</p></div>';
    return '<div class="report-detail"><h4>'+title+'</h4><table class="report-compact-table"><thead><tr><th>Corte</th><th>Ingresado</th><th>'+(type==='vehicles'?'% del total':'% del proyectado')+'</th></tr></thead><tbody>'+windows.map(([label,h])=>{
-    const n=hourCount(series,h,label==='post20'?'post':'pre');
+    const n=hourCount(series,h,label==='post20'?'post':'pre',startHour);
     return '<tr><th>'+label+'</th><td>'+nf.format(n)+'</td><td>'+(plan>0?percent(pct(n,plan)):(type==='vehicles'?'Sin vehículos':'Definir proyectado'))+'</td></tr>';
    }).join('')+'</tbody></table></div>';
   };
-  const plans='<div class="report-detail"><h4>Base de cálculo · cortes horarios</h4><div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end"><label class="report-projection">Proyectado paquetes <input type="number" min="0" step="1" data-report-plan="packages" data-report-site="'+x.site+'" value="'+(packagePlan||'')+'" placeholder="Ingresar paquetes"></label><div class="report-projection"><span>Total real de vehículos</span><strong>'+(source?nf.format(vehSum):'Sin datos')+'</strong></div></div><small>PRE: acumulado desde las 09:00 hasta antes del horario indicado. POST20: desde las 20:00 hasta antes de las 09:00 del día siguiente. Paquetes ÷ proyectado; vehículos ÷ total real.</small></div>';
+  const plans='<div class="report-detail"><h4>Base de cálculo · cortes horarios</h4><div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end"><label class="report-projection">Proyectado paquetes <input type="number" min="0" step="1" data-report-plan="packages" data-report-site="'+x.site+'" value="'+(packagePlan||'')+'" placeholder="Ingresar paquetes"></label><div class="report-projection"><span>Total real de vehículos</span><strong>'+(source?nf.format(vehSum):'Sin datos')+'</strong></div><label class="report-projection">Inicio PRE <select data-report-start="'+x.site+'">'+Array.from({length:14},(_,h)=>'<option value="'+h+'"'+(h===startHour?' selected':'')+'>'+String(h).padStart(2,'0')+':00</option>').join('')+'</select></label></div><small>PRE: acumulado desde las '+String(startHour).padStart(2,'0')+':00 hasta antes del horario indicado (ej.: pre14 hasta 13:59). POST20: desde las 20:00 hasta antes de las 09:00 del día siguiente. Paquetes ÷ proyectado; vehículos ÷ total real.</small></div>';
   return '<section class="report-site"><h3>'+x.name+'</h3>'+plans+'<div class="report-kpis">'+cards.join('')+'</div>'+table('Paquetes · Registros descarga',ed,packagePlan,'packages')+table('Vehículos · Arribos',source,vehiclePlan,'vehicles')+huTable+'</section>';
  }).join('')+'</div>';
+ host.querySelectorAll('[data-report-start]').forEach(input=>input.addEventListener('change',()=>{localStorage.setItem('inhubReportStart_'+input.dataset.reportStart,input.value);reportPreview();}));
  host.querySelectorAll('[data-report-plan]').forEach(input=>input.addEventListener('change',()=>{
   const n=Number(input.value);
   if(!Number.isFinite(n)||n<0){alert('Ingresá un proyectado válido.');return}
