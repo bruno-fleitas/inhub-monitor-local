@@ -19,7 +19,7 @@ for(const [id,site,type] of bindings)$(id).onchange=async e=>{const f=e.target.f
 function status(site){const id=site==='soldati'?'statusS':'statusE',a=Object.entries(state.sites[site].files).filter(([,f])=>f).map(([k,f])=>k+': '+f.name);$(id).textContent=a.length?a.join(' · '):'Sin archivos cargados.'}
 function progress(p,msg){$('progress').classList.remove('hidden');$('progressBar').style.width=Math.max(0,Math.min(100,p))+'%';$('message').textContent=msg}
 function onceWorker(url,payload,onp){return new Promise((res,rej)=>{const w=new Worker(url);w.onmessage=e=>{const m=e.data||{};if(m.type==='PROGRESS')onp?.(m.progress||0);if(m.type==='RESULT'){w.terminate();res(m.result)}if(m.type==='ERROR'){w.terminate();rej(new Error(m.message))}};w.onerror=e=>{w.terminate();rej(new Error(e.message||'Worker error'))};w.postMessage(payload)})}
-const runT=(site,onp)=>state.sites[site].files.tms?onceWorker('./workers/tms.worker.js?v=20261028-underscores-1',{type:'PROCESS_TMS',file:state.sites[site].files.tms,labFile:state.sites[site].files.labelless||null,config:{selectedDate:state.config.analysisDate,cptStart:state.config.cptStart[site],huStartHour:huConfig(site).huStartHour??7,huCutoff:huConfig(site).huCutoff||null}},onp):Promise.resolve(null);
+const runT=(site,onp)=>state.sites[site].files.tms?onceWorker('./workers/tms.worker.js?v=20261029-dot-1',{type:'PROCESS_TMS',file:state.sites[site].files.tms,labFile:state.sites[site].files.labelless||null,config:{selectedDate:state.config.analysisDate,cptStart:state.config.cptStart[site],huStartHour:huConfig(site).huStartHour??7,huCutoff:huConfig(site).huCutoff||null}},onp):Promise.resolve(null);
 const runA=(site,onp)=>state.sites[site].files.arrivals?onceWorker('./workers/arrivals.worker.js',{type:'PROCESS_ARRIVALS',file:state.sites[site].files.arrivals,day:state.config.analysisDate},onp):Promise.resolve(null);
 const runR=(site,onp)=>state.sites[site].files.registros?onceWorker('./workers/registros.worker.js?v=20261028-types-hourly-1',{type:'PROCESS_REGISTROS',file:state.sites[site].files.registros,day:state.config.analysisDate},onp):Promise.resolve(null);
 const runL=(site,onp)=>state.sites[site].files.labelless?onceWorker('./workers/labelless.worker.js',{type:'PROCESS_LAB',file:state.sites[site].files.labelless},onp):Promise.resolve(null);
@@ -694,74 +694,84 @@ function huTrackingTable(site,t){
     </details>`).join('')}</div>`;
 }
 
-function dotTarget(site){state.config.dot??={};const c=state.config.dot[site]??={};if(c.objective==null)c.objective=99.55;if(c.start==null)c.start='09:00';if(c.end==null)c.end='13:00';if(c.status==null)c.status='all';if(c.subca==null)c.subca='all';if(c.excludeAir==null)c.excludeAir=false;if(c.detail==null)c.detail='subca';if(!Array.isArray(c.statuses))c.statuses=[];if(!Array.isArray(c.subcas))c.subcas=[];return c}
+
+const dotExclusions={soldati:new Map(),echeverria:new Map()};
+function dotTarget(site){
+ state.config.dot??={};const c=state.config.dot[site]??={};
+ if(c.objective==null)c.objective=99.55;
+ if(c.date==null){const base=state.config.analysisDate;if(base){const [y,m,d]=base.split('-').map(Number);const next=new Date(y,m-1,d+1);c.date=dotDay(next.getTime())}else c.date=dotDay(Date.now())}
+ if(c.status==null)c.status='all';if(c.subca==null)c.subca='all';if(c.detail==null)c.detail='all';return c;
+}
 function dotDay(ts){const d=new Date(ts);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
 function dotTime(day,time,plus=0){if(!day||!time)return null;const [y,m,d]=day.split('-').map(Number),[h,min]=time.split(':').map(Number);return new Date(y,m-1,d+plus,h,min||0,0).getTime()}
-function dotCptTime(day,cpt){if(!day||cpt==null)return null;const raw=String(cpt).trim();const m=raw.match(/^(\d{1,2})(?::(\d{2}))?/);if(!m)return null;const h=+m[1],min=+(m[2]||0);if(h>23)return null;return dotTime(day,String(h).padStart(2,'0')+':'+String(min).padStart(2,'0'),h<9?1:0)}
+function dotCptTime(day,cpt){if(!day||cpt==null)return null;const m=String(cpt).trim().match(/^(\d{1,2})(?::(\d{2}))?$/);if(!m||+m[1]>13||+(m[2]||0)>59)return null;return dotTime(day,m[1].padStart(2,'0')+':'+(m[2]||'00'))}
 function dotData(site,t){
  const cfg=dotTarget(site),src=t.dotRows||[],master=new Map(masters[site].map(x=>[String(x.subca).trim().toUpperCase(),x]));
- const statuses=[...new Set(src.map(x=>x.status).filter(Boolean))].sort(),subcas=[...new Set(src.map(x=>x.subca).filter(Boolean))].sort();
- const reference=state.config.analysisDate||null,base=reference|| (src.find(x=>x.inTs!=null)?dotDay(src.find(x=>x.inTs!=null).inTs):null);
- const start=dotTime(base,cfg.start),end=dotTime(base,cfg.end,1);let latest=Math.max(0,t.maxInTs||0,t.hu?.maxOutTs||0);for(const x of src){if(x.dispatchTs!=null&&x.dispatchTs>latest)latest=x.dispatchTs}
- const now=Date.now(),groups=new Map(),huMap=new Map();let missingMaster=0;
+ const start=dotTime(cfg.date,'00:00',-1),end=dotTime(cfg.date,'00:00'),now=Date.now(),exclusions=dotExclusions[site];
+ const rows=[],missing=[],tot={total:0,onTime:0,delay:0,pending:0,excluded:0},groups=new Map();
  for(const x of src){
-  if(x.inTs==null||start==null||x.inTs<start||x.inTs>end)continue;
+  if(x.inTs==null||x.inTs<start||x.inTs>=end)continue;
   const zone=String(x.subca||'').trim(),status=String(x.status||'').trim();
-  if(cfg.excludeAir&&/_A$/i.test(zone))continue;
-  if(cfg.statuses.length&&!cfg.statuses.includes(status))continue;
-  if(cfg.subcas.length&&!cfg.subcas.includes(zone))continue;
-  const m=master.get(zone.toUpperCase());if(!m){missingMaster++;continue}
-  const deadline=dotCptTime(base,m.cpt);if(deadline==null){missingMaster++;continue}
-  const cpt=String(m.cpt),key=cpt+'|'+zone;
-  if(!groups.has(key))groups.set(key,{cpt,subca:zone,total:0,onTime:0,delay:0,deviation:0,pending:0,shipments:[]});
-  const g=groups.get(key);g.total++;
-  const kind=x.dispatchTs!=null?(x.dispatchTs<=deadline?'onTime':'delay'):(now>=deadline?'deviation':'pending');g[kind]++;
-  if(kind==='pending'||kind==='deviation'){
-   const item={shipment:x.shipment,hu:x.hu,subca:zone,cpt,status,kind};
-   g.shipments.push(item);
-   if(x.hu){const hk=x.hu+'|'+zone+'|'+cpt;if(!huMap.has(hk))huMap.set(hk,{hu:x.hu,subca:zone,cpt,pending:0,deviation:0,shipments:[]});const h=huMap.get(hk);h[kind]++;h.shipments.push(item)}
-  }
+  const m=master.get(zone.toUpperCase()),deadline=m?dotCptTime(cfg.date,m.cpt):null;
+  const cpt=deadline==null?'':String(m.cpt),key=String(x.shipment),dispatch=x.dispatchTs;
+  const kind=deadline==null?'sinCpt':dispatch!=null?(dispatch<=deadline?'onTime':'delay'):(now>=deadline?'delay':'pending');
+  const exclusion=kind==='delay'?(exclusions.get(key)||''):'';
+  const item={...x,subca:zone,status,cpt,deadline,kind,exclusion,minutes:deadline!=null&&dispatch!=null?Math.max(0,Math.ceil((dispatch-deadline)/60000)):null};
+  rows.push(item);
+  if(kind==='sinCpt'){missing.push(item);continue}
+  tot.total++;tot[kind]++;if(exclusion)tot.excluded++;
+  const groupKey=cpt+'|'+zone;
+  if(!groups.has(groupKey))groups.set(groupKey,{cpt,subca:zone,total:0,onTime:0,delay:0,pending:0,excluded:0});
+  const g=groups.get(groupKey);g.total++;g[kind]++;if(exclusion)g.excluded++;
  }
- const rows=[...groups.values()],cptMap=new Map(),total={total:0,onTime:0,delay:0,deviation:0,pending:0};
- for(const g of rows){for(const k of Object.keys(total))total[k]+=g[k];if(!cptMap.has(g.cpt))cptMap.set(g.cpt,{cpt:g.cpt,total:0,onTime:0,delay:0,deviation:0,pending:0,subcas:[]});const c=cptMap.get(g.cpt);for(const k of Object.keys(total))c[k]+=g[k];c.subcas.push(g)}
- const cpts=[...cptMap.values()].sort((a,b)=>Number(a.cpt)-Number(b.cpt));return{rows,cpts,total,hus:[...huMap.values()],statuses,subcas,missingMaster,base,latest,hasDispatchField:t.dotHasDispatchField!==false,objective:Number(cfg.objective)||99.55};
+ const evaluated=tot.onTime+tot.delay,adjusted=evaluated-tot.excluded;
+ return {rows,missing,total:tot,groups:[...groups.values()].sort((a,b)=>Number(a.cpt)-Number(b.cpt)||a.subca.localeCompare(b.subca)),date:cfg.date,sourceDate:dotDay(start),bruto:evaluated?100*tot.onTime/evaluated:null,ajustado:adjusted>0?100*tot.onTime/adjusted:null,hasDispatchField:t.dotHasDispatchField!==false};
+}
+function dotExport(site){
+ const t=state.sites[site].tms;if(!t)return;const d=dotData(site,t),rows=dotVisibleRows(site,d);
+ const headers=['Shipment ID','Site','Ingreso','SubCA','CPT','Limite CPT','Despacho','HU','Hub Status','Estado DOT','Minutos de atraso','Desestimado','Motivo'];
+ const fmt=ts=>ts==null?'':new Date(ts).toLocaleString('es-AR');
+ const data=rows.map(x=>[x.shipment,names[site],fmt(x.inTs),x.subca,x.cpt,fmt(x.deadline),fmt(x.dispatchTs),x.hu,x.status,x.kind==='sinCpt'?'SIN CPT':x.kind==='onTime'?'ON TIME':x.kind==='pending'?'PENDIENTE':'DELAY',x.minutes??'',x.exclusion?'SI':'NO',x.exclusion]);
+ const csv='\uFEFF'+[headers,...data].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='Auditoria_DOT_'+site+'_'+d.date+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function dotVisibleRows(site,d){
+ const cfg=dotTarget(site),q=(cfg.search||'').toLowerCase().trim();
+ return d.rows.filter(x=>(!cfg.kind||cfg.kind==='all'||x.kind===cfg.kind)&&(!cfg.subcaFilter||cfg.subcaFilter==='all'||x.subca===cfg.subcaFilter)&&(!cfg.cptFilter||cfg.cptFilter==='all'||x.cpt===cfg.cptFilter)&&( !q||String(x.shipment).toLowerCase().includes(q)||x.subca.toLowerCase().includes(q)||String(x.hu).toLowerCase().includes(q)));
 }
 function dotMonitor(site,t){
- const cfg=dotTarget(site),d=dotData(site,t),v=d.total,den=v.onTime+v.delay+v.deviation,score=den?100*v.onTime/den:null;
- const opts=(values,selected)=>values.map(x=>'<option value="'+esc(x)+'" '+(selected===x?'selected':'')+'>'+esc(x==='all'?'Todos':x)+'</option>').join('');
- const details=cfg.detail==='hu'?d.hus.map(x=>({label:x.hu,subca:x.subca,cpt:x.cpt,pending:x.pending,deviation:x.deviation,shipments:x.shipments})):cfg.detail==='cpt'?d.cpts.map(x=>({label:'CPT '+x.cpt,subca:x.subcas.length+' SubCA',cpt:x.cpt,pending:x.pending,deviation:x.deviation,shipments:x.subcas.flatMap(z=>z.shipments)})):d.rows.map(x=>({label:x.subca,subca:x.subca,cpt:x.cpt,pending:x.pending,deviation:x.deviation,shipments:x.shipments}));
- const filtered=details.filter(x=>x.shipments.length);
- return '<section class="dot-panel"><div class="hu-section-title"><div><h3>Dispatch On Time · DOT</h3><div class="hu-note">Ingresos Inhub de la jornada · despacho real: Dispatch Date Finished. CPT de madrugada corresponde al día siguiente.</div></div><label>Objetivo DOT %<input type="number" min="0" max="100" step="0.01" data-dot-objective="'+site+'" value="'+cfg.objective+'"></label></div>'+
- '<div class="hu-head-actions" style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0">'+
- '<label>Inicio Inhub <input type="time" data-dot-filter="start" data-site="'+site+'" value="'+cfg.start+'"></label>'+
- '<label>Fin jornada (+1 día) <input type="time" data-dot-filter="end" data-site="'+site+'" value="'+cfg.end+'"></label>'+
- '<details class="dot-multi"><summary>Hub Status ('+(cfg.statuses.length?cfg.statuses.length+' seleccionados':'Todos')+')</summary><div class="dot-multi-options" style="max-height:260px;overflow:auto;padding:10px;background:#fff;color:#172338;border-radius:8px"><button type="button" data-dot-select-all="statuses" data-site="'+site+'">Todos</button> <button type="button" data-dot-clear="statuses" data-site="'+site+'">Ninguno</button>'+d.statuses.map(x=>'<label style="display:block;padding:4px"><input type="checkbox" data-dot-multi="statuses" data-site="'+site+'" value="'+esc(x)+'" '+(!cfg.statuses.length||cfg.statuses.includes(x)?'checked':'')+'> '+esc(x)+'</label>').join('')+'</div></details>'+
- '<details class="dot-multi"><summary>Labeling Zone / SubCA ('+(cfg.subcas.length?cfg.subcas.length+' seleccionados':'Todos')+')</summary><div class="dot-multi-options" style="max-height:260px;overflow:auto;padding:10px;background:#fff;color:#172338;border-radius:8px"><button type="button" data-dot-select-all="subcas" data-site="'+site+'">Todos</button> <button type="button" data-dot-clear="subcas" data-site="'+site+'">Ninguno</button>'+d.subcas.map(x=>'<label style="display:block;padding:4px"><input type="checkbox" data-dot-multi="subcas" data-site="'+site+'" value="'+esc(x)+'" '+(!cfg.subcas.length||cfg.subcas.includes(x)?'checked':'')+'> '+esc(x)+'</label>').join('')+'</div></details>'+
- '<label>Excluir MELI Air <input type="checkbox" data-dot-filter="excludeAir" data-site="'+site+'" '+(cfg.excludeAir?'checked':'')+'></label></div>'+
- '<div class="hu-note">Jornada: '+esc(d.base||'sin fecha')+' · Corte de datos: '+(d.latest?new Date(d.latest).toLocaleString('es-AR'):'sin registros')+(d.missingMaster?' · '+nf.format(d.missingMaster)+' registros sin CPT configurado':'')+(!d.hasDispatchField?' · ADVERTENCIA: falta Dispatch Date Finished en el CSV':'')+'</div>'+
- '<div class="hu-status-strip">'+[['DOT calculado (CPT)',score==null?'Sin datos':pf.format(score)+'%'],['Ingresados',nf.format(v.total)],['On Time',nf.format(v.onTime)],['Delay despachado',nf.format(v.delay)],['Sin despacho · CPT vencido',nf.format(v.deviation)],['Pendientes de despacho (CPT futuro)',nf.format(v.pending)],['Despachado / ingresado',v.total?pf.format(100*(v.onTime+v.delay)/v.total)+'%':'-']].map(x=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')+'</div>'+
- '<div class="hu-head-actions" style="margin:16px 0"><label>Ver pendientes <select data-dot-filter="detail" data-site="'+site+'">'+opts(['subca','hu','cpt'],cfg.detail)+'</select></label></div>'+
- '<div class="hu-scroll"><table class="hu-table compact"><tr><th>SubCA / HU / CPT</th><th>SubCA</th><th>CPT</th><th>Pendientes</th><th>Desvíos</th><th>Ver</th></tr>'+
- filtered.map((x,i)=>'<tr><td>'+esc(x.label)+'</td><td>'+esc(x.subca)+'</td><td>'+esc(x.cpt)+'</td><td>'+nf.format(x.pending)+'</td><td>'+nf.format(x.deviation)+'</td><td><button type="button" data-dot-detail="'+i+'" data-site="'+site+'">Ver envíos</button></td></tr>').join('')+
- (!filtered.length?'<tr><td colspan="6">Sin pendientes para estos filtros.</td></tr>':'')+'</table></div>'+
- '<div class="hu-note" style="margin-top:16px"><strong>Auditoría de Delay por CPT</strong> · Despachados después del horario CPT configurado (se muestran primero los de mayor cantidad).</div><div class="hu-scroll"><table class="hu-table compact"><tr><th>CPT</th><th>Ingresados</th><th>On Time</th><th>Delay despachado</th><th>Sin despacho vencido</th></tr>'+d.cpts.slice().sort((a,b)=>b.delay-a.delay).map(c=>'<tr><td>'+esc(c.cpt)+'</td><td>'+nf.format(c.total)+'</td><td>'+nf.format(c.onTime)+'</td><td><strong>'+nf.format(c.delay)+'</strong></td><td>'+nf.format(c.deviation)+'</td></tr>').join('')+'</table></div>'+ 
- '<div class="hu-note">El 99,79% informado por el reporte oficial no se impone al cálculo: el detalle de CPT permite auditar la diferencia.</div>'+ 
- '<div class="cpt-track">'+d.cpts.map(c=>'<details class="cpt-group"><summary><span class="cpt-name">CPT '+esc(c.cpt)+'</span><span>'+nf.format(c.total)+' ingresados</span><span>'+nf.format(c.onTime)+' On Time</span><span>'+nf.format(c.delay)+' Delay</span><span>'+nf.format(c.deviation)+' Desvío</span><span>'+nf.format(c.pending)+' pendientes</span></summary><div class="hu-scroll"><table class="hu-table compact"><tr><th>SubCA</th><th>Ingresados</th><th>On Time</th><th>Delay</th><th>Desvío</th><th>Pendiente</th></tr>'+c.subcas.map(z=>'<tr><td>'+esc(z.subca)+'</td><td>'+nf.format(z.total)+'</td><td>'+nf.format(z.onTime)+'</td><td>'+nf.format(z.delay)+'</td><td>'+nf.format(z.deviation)+'</td><td>'+nf.format(z.pending)+'</td></tr>').join('')+'</table></div></details>').join('')+'</div></section>';
+ const cfg=dotTarget(site),d=dotData(site,t),v=d.total,visible=dotVisibleRows(site,d),fmt=ts=>ts==null?'—':new Date(ts).toLocaleString('es-AR');
+ const options=(vals,selected)=>vals.map(v=>'<option value="'+esc(v)+'"'+(v===selected?' selected':'')+'>'+esc(v==='all'?'Todos':v)+'</option>').join('');
+ const subcas=[...new Set(d.rows.map(x=>x.subca))].sort(),cpts=[...new Set(d.rows.map(x=>x.cpt).filter(Boolean))].sort((a,b)=>Number(a)-Number(b));
+ const kpi=(label,value)=>'<div><span>'+label+'</span><b>'+value+'</b></div>';
+ return '<section class="dot-panel"><div class="hu-section-title"><div><h3>Dispatch On Time · DOT</h3><div class="hu-note">Ingresos de D-1: 00:00–23:59:59 · CPT del día D: 00:00–13:00. Desestimaciones temporales.</div></div><label>Fecha DOT <input type="date" data-dot-field="date" data-site="'+site+'" value="'+esc(cfg.date)+'"></label></div>'+
+ '<div class="hu-note">Jornada de ingreso: '+esc(d.sourceDate)+' · Fecha de cumplimiento: '+esc(d.date)+(d.hasDispatchField?'':' · ADVERTENCIA: falta Dispatch Date Finished en CSV')+'</div>'+
+ '<div class="hu-status-strip">'+kpi('DOT original',d.bruto==null?'Sin evaluados':pf.format(d.bruto)+'%')+kpi('DOT ajustado',d.ajustado==null?'Sin evaluados':pf.format(d.ajustado)+'%')+kpi('ON TIME',nf.format(v.onTime))+kpi('DELAY',nf.format(v.delay))+kpi('Desestimados',nf.format(v.excluded))+kpi('CPT futuro',nf.format(v.pending))+kpi('Sin CPT',nf.format(d.missing.length))+'</div>'+
+ '<div class="hu-note" style="margin:12px 0">DOT original = ON TIME / (ON TIME + DELAY). DOT ajustado = ON TIME / (ON TIME + DELAY - desestimados). Los pendientes y Sin CPT no entran en el porcentaje.</div>'+
+ '<div class="hu-head-actions" style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0">'+
+ '<label>Estado <select data-dot-field="kind" data-site="'+site+'">'+options(['all','onTime','delay','pending','sinCpt'],cfg.kind||'all')+'</select></label>'+
+ '<label>SubCA <select data-dot-field="subcaFilter" data-site="'+site+'">'+options(['all',...subcas],cfg.subcaFilter||'all')+'</select></label>'+
+ '<label>CPT <select data-dot-field="cptFilter" data-site="'+site+'">'+options(['all',...cpts],cfg.cptFilter||'all')+'</select></label>'+
+ '<label>Buscar <input data-dot-field="search" data-site="'+site+'" value="'+esc(cfg.search||'')+'" placeholder="Shipment / HU / SubCA"></label>'+
+ '<button type="button" data-dot-export="'+site+'">Exportar detalle (Excel / CSV)</button></div>'+
+ '<div class="hu-note">Mostrando '+nf.format(Math.min(visible.length,500))+' de '+nf.format(visible.length)+' shipments filtrados. La exportación incluye todos los filtrados.</div>'+
+ '<div class="hu-scroll"><table class="hu-table compact"><thead><tr><th>Shipment ID</th><th>Ingreso</th><th>SubCA</th><th>CPT</th><th>Límite</th><th>Despacho</th><th>Estado</th><th>Atraso (min)</th><th>Desestimar</th><th>Motivo</th></tr></thead><tbody>'+
+ visible.slice(0,500).map(x=>'<tr><td>'+esc(x.shipment)+'</td><td>'+esc(fmt(x.inTs))+'</td><td>'+esc(x.subca||'—')+'</td><td>'+esc(x.cpt||'—')+'</td><td>'+esc(fmt(x.deadline))+'</td><td>'+esc(fmt(x.dispatchTs))+'</td><td>'+esc(x.kind==='sinCpt'?'SIN CPT':x.kind==='onTime'?'ON TIME':x.kind==='pending'?'PENDIENTE':'DELAY')+'</td><td>'+esc(x.minutes??'—')+'</td><td>'+(x.kind==='delay'?'<input type="checkbox" data-dot-exclude="'+site+'" data-shipment="'+esc(x.shipment)+'"'+(x.exclusion?' checked':'')+'>':'—')+'</td><td>'+(x.kind==='delay'?'<select data-dot-reason="'+site+'" data-shipment="'+esc(x.shipment)+'"><option value="">Sin desestimar</option>'+[['Sistema','Desvío de sistema'],['LH-VEHICULOS','LH – Vehículos']].map(([v,l])=>'<option value="'+v+'"'+(x.exclusion===v?' selected':'')+'>'+l+'</option>').join('')+'</select>':'—')+'</td></tr>').join('')+
+ (!visible.length?'<tr><td colspan="10">Sin envíos para los filtros seleccionados.</td></tr>':'')+'</tbody></table></div>'+
+ '<div class="hu-note" style="margin-top:16px"><strong>SubCA sin CPT configurado</strong> · Revisar y completar la configuración de CPT correspondiente.</div>'+
+ '<div class="hu-scroll"><table class="hu-table compact"><tr><th>SubCA</th><th>Shipments sin CPT</th></tr>'+[...d.missing.reduce((m,x)=>(m.set(x.subca,(m.get(x.subca)||0)+1),m),new Map()).entries()].sort((a,b)=>b[1]-a[1]).map(([sub,n])=>'<tr><td>'+esc(sub||'SIN SUBCA')+'</td><td>'+nf.format(n)+'</td></tr>').join('')+(!d.missing.length?'<tr><td colspan="2">Sin SubCA pendientes de CPT.</td></tr>':'')+'</table></div>'+
+ '<div class="hu-note" style="margin-top:16px"><strong>Auditoría por CPT y SubCA</strong></div><div class="hu-scroll"><table class="hu-table compact"><tr><th>CPT</th><th>SubCA</th><th>Ingresados</th><th>ON TIME</th><th>DELAY</th><th>Pendientes</th><th>Desestimados</th></tr>'+d.groups.map(g=>'<tr><td>'+esc(g.cpt)+'</td><td>'+esc(g.subca)+'</td><td>'+nf.format(g.total)+'</td><td>'+nf.format(g.onTime)+'</td><td>'+nf.format(g.delay)+'</td><td>'+nf.format(g.pending)+'</td><td>'+nf.format(g.excluded)+'</td></tr>').join('')+'</table></div>'+
+ '<div class="hu-note" style="margin-top:16px"><strong>DOT especial de fin de semana</strong> · Cronograma de SubCA viernes/sábado y domingo/lunes pendiente de configuración. No se aplican reglas supuestas.</div></section>';
 }
 function bindDotControls(){
- document.querySelectorAll('[data-dot-objective]').forEach(el=>el.onchange=()=>{dotTarget(el.dataset.dotObjective).objective=Math.max(0,Math.min(100,Number(el.value)||99.55));huControl()});
- document.querySelectorAll('[data-dot-filter]').forEach(el=>el.onchange=()=>{dotTarget(el.dataset.site)[el.dataset.dotFilter]=el.type==='checkbox'?el.checked:el.value;huControl()});
- document.querySelectorAll('[data-dot-multi]').forEach(el=>el.onchange=()=>{const site=el.dataset.site,field=el.dataset.dotMulti,c=dotTarget(site);const all=[...document.querySelectorAll('[data-dot-multi="'+field+'"][data-site="'+site+'"]')];const selected=all.filter(x=>x.checked).map(x=>x.value);c[field]=selected.length===all.length?[]:(selected.length?selected:['__NONE__']);const open=el.closest('details')?.open;huControl();if(open){const d=document.querySelector('[data-dot-multi="'+field+'"][data-site="'+site+'"]')?.closest('details');if(d)d.open=true}});
- document.querySelectorAll('[data-dot-select-all]').forEach(el=>el.onclick=()=>{dotTarget(el.dataset.site)[el.dataset.dotSelectAll]=[];huControl()});
- document.querySelectorAll('[data-dot-clear]').forEach(el=>el.onclick=()=>{dotTarget(el.dataset.site)[el.dataset.dotClear]=['__NONE__'];huControl()});
- document.querySelectorAll('[data-dot-detail]').forEach(btn=>btn.onclick=()=>{
- const site=btn.dataset.site,cfg=dotTarget(site),d=dotData(site,state.sites[site].tms);
- const data=cfg.detail==='hu'?d.hus.map(x=>({label:x.hu,shipments:x.shipments})):cfg.detail==='cpt'?d.cpts.map(x=>({label:'CPT '+x.cpt,shipments:x.subcas.flatMap(z=>z.shipments)})):d.rows.map(x=>({label:x.subca,shipments:x.shipments}));
- const selected=data.filter(x=>x.shipments.length),entry=selected[Number(btn.dataset.dotDetail)];if(!entry)return;
- const modal=document.createElement('div');modal.className='user-modal';
- modal.innerHTML='<div class="user-modal-card" style="max-width:1050px"><div class="user-modal-head"><div><h3>'+esc(entry.label)+' · pendientes de despacho</h3><small>'+nf.format(entry.shipments.length)+' envíos · máximo 1.000 en vista previa</small></div><button type="button" class="user-close">×</button></div><div class="user-modal-body"><table class="hu-table compact"><tr><th>Shipment ID</th><th>Outbound ID / HU</th><th>SubCA</th><th>CPT</th><th>Hub Status</th><th>DOT</th></tr>'+entry.shipments.slice(0,1000).map(x=>'<tr><td>'+esc(x.shipment)+'</td><td>'+esc(x.hu||'-')+'</td><td>'+esc(x.subca)+'</td><td>'+esc(x.cpt)+'</td><td>'+esc(x.status)+'</td><td>'+(x.kind==='deviation'?'Desvío':'Pendiente')+'</td></tr>').join('')+'</table></div></div>';
- document.body.appendChild(modal);modal.querySelector('.user-close').onclick=()=>modal.remove();modal.onclick=e=>{if(e.target===modal)modal.remove()};
+ document.querySelectorAll('[data-dot-field]').forEach(el=>el.onchange=()=>{dotTarget(el.dataset.site)[el.dataset.dotField]=el.value;huControl()});
+ document.querySelectorAll('[data-dot-export]').forEach(el=>el.onclick=()=>dotExport(el.dataset.dotExport));
+ document.querySelectorAll('[data-dot-exclude]').forEach(el=>el.onchange=()=>{
+  const site=el.dataset.dotExclude,id=el.dataset.shipment,sel=[...document.querySelectorAll('[data-dot-reason]')].find(x=>x.dataset.dotReason===site&&x.dataset.shipment===id);
+  if(el.checked){const reason=sel?.value||'Sistema';dotExclusions[site].set(id,reason)}else dotExclusions[site].delete(id);huControl();
  });
+ document.querySelectorAll('[data-dot-reason]').forEach(el=>el.onchange=()=>{const site=el.dataset.dotReason,id=el.dataset.shipment;if(el.value)dotExclusions[site].set(id,el.value);else dotExclusions[site].delete(id);huControl()});
 }
 function huControl(){
   for(const [site,id] of [['soldati','huViewSoldati'],['echeverria','huViewEcheverria']]){
