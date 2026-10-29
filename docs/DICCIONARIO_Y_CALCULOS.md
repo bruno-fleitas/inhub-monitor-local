@@ -80,3 +80,6 @@ Para cada corte:
 - Cuando se documente un filtro nuevo, registrar: **origen → columna → condición → excepciones → numerador/denominador → ejemplo → prueba**.
 - Los horarios `09:00` y `20:00` del Reporte gerencial no son necesariamente los mismos cortes que la jornada operativa de jornales (06:00).
 - Conservar ejemplos de prueba anonimizados, jamás datos reales de envíos o personas en el repositorio.
+
+## 6. Compatibilidad obligatoria de dos formatos TMS
+El monitor debe procesar tanto el **CSV TMS anterior** como el **CSV TMS nuevo**, sin requerir que el usuario modifique manualmente las columnas. Al actualizar el parser o los cálculos, validar ambos formatos con muestras anonimizadas y revisar nombres de encabezados, orden, separador, codificación, fechas, unidades de peso/dimensiones y columnas faltantes. El worker ya contiene normalización y búsqueda por alias de algunas columnas, pero eso **no demuestra** cobertura completa de los dos formatos. Mantener un mapeo explícito de equivalencias verificado contra archivos reales y pruebas de regresión por formato y site. La diferencia de unidades entre el módulo TMS y el worker es especialmente importante para esta verificación.
