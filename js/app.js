@@ -865,7 +865,7 @@ function reportPreview(){
   return raw===null?fallback:Math.max(0,Number(raw)||0);
  };
  const windows=[['pre14',14],['pre16',16],['pre17',17],['pre18',18],['post20',20]];
- const reportRange=site=>{const a=Number(localStorage.getItem('inhubReportRangeFrom_'+site)),b=Number(localStorage.getItem('inhubReportRangeTo_'+site));return{from:Number.isInteger(a)&&a>=0&&a<=23?a:9,to:Number.isInteger(b)&&b>=0&&b<=23?b:22}};
+ const reportRange=site=>{const rawA=localStorage.getItem('inhubReportRangeFrom_'+site),rawB=localStorage.getItem('inhubReportRangeTo_'+site),a=rawA===null?9:Number(rawA),b=rawB===null?22:Number(rawB);return{from:Number.isInteger(a)&&a>=0&&a<=23?a:9,to:Number.isInteger(b)&&b>=0&&b<=23?b:22}};
  const hourOptions=selected=>Array.from({length:24},(_,h)=>'<option value="'+h+'"'+(h===selected?' selected':'')+'>'+String(h).padStart(2,'0')+':00</option>').join('');
  const getStart=site=>{const raw=localStorage.getItem('inhubReportStart_'+site);const n=raw===null?9:Number(raw);return Number.isInteger(n)&&n>=0&&n<=13?n:9;};
  const hourCount=(series,limit,kind,startHour)=>{
