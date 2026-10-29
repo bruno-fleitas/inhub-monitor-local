@@ -41,3 +41,8 @@ Cuando solicite una modificación:
 
 ## Próxima tarea de documentación
 Realizar auditoría exhaustiva por módulo de `js/app.js` (archivo grande), `workers/tms.worker.js`, `workers/jornales.worker.js` y formatos CSV reales; agregar matriz de pruebas y ejemplos con datos anonimizados. Las notas actuales identifican lo verificado y lo pendiente, y no deben interpretarse como una certificación de todas las fórmulas.
+
+## Requisito obligatorio: compatibilidad con dos CSV de TMS
+El monitor debe aceptar **dos formatos diferentes de CSV de TMS: formato anterior y formato nuevo**. No eliminar soporte de ninguno al modificar importación, encabezados, conversiones, fechas, filtros o indicadores. La compatibilidad es un requisito de regresión para **Soldati y Echeverría**.
+
+Antes de cambiar código: comparar ambos encabezados y muestras anonimizadas, identificar campos equivalentes y diferencias de unidades, comprobar que ambos generan los mismos resultados esperados para registros equivalentes y documentar excepciones. **No se ha certificado todavía** la equivalencia completa entre ambos formatos; no inventar el mapeo ni asumir que todos los encabezados son iguales.
