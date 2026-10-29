@@ -856,7 +856,7 @@ function reportPreview(){
  };
  host.innerHTML='<div class="report-sites">'+data.map(x=>{
   const r=x.r,t=x.t,hu=x.hu,source=r?.vehiclesByHour||x.a?.h;
-  const vehicleTypes=[['Chasis','chasis'],['Camioneta (incluye MELI)','camioneta'],['Semi','semi']];
+  const vehicleTypes=[['Chasis','chasis'],['Camioneta','camioneta'],['Semi','semi']];
   const vehTotals=vehicleTypes.map(([label,key])=>({label,n:source?source.reduce((sum,h)=>sum+Number(h?.[key]||0),0):0}));
   const vehSum=source?source.reduce((sum,h)=>sum+Number(h?.veh||0),0):0;
   const ed=r?.byHour||null,projected=x.fc;
@@ -865,7 +865,7 @@ function reportPreview(){
   const pure=t?Math.max(0,t.vol-t.big-t.sb):null;
   const cards=[];
   const add=(label,value,detail='')=>cards.push('<div class="report-kpi"><span>'+label+'</span><b>'+value+'</b>'+(detail?'<small>'+detail+'</small>':'')+'</div>');
-  add('Total vehículos ingresados',source?nf.format(vehSum):'—','Base real para los porcentajes de vehículos');
+  add('Total vehículos ingresados',source?nf.format(vehSum):'—');
   if(t){add('Inhub',nf.format(t.totalConPost),projected?percent(pct(t.totalConPost,projected))+' del proyectado':'');add('Voluminoso sin B/SB',percent(pct(pure,t.totalConPost)));add('Voluminoso con B/SB',percent(pct(t.vol,t.totalConPost)))}
   if(hu)add('Avance HU',percent(hu.avance),nf.format(hu.pendiente)+' pendientes');
   if(r||x.a)add('SPR general',r?.vehicles&&r?.packages?pf.format(r.packages/r.vehicles)+' pza/veh.':'—','Paquetes ED / vehículos de Registros');
