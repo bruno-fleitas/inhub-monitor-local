@@ -436,3 +436,21 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .vehicle-type-inline-grid span{font-size:12px}.vehicle-type-inline-grid b{font-size:17px;color:#103b69}
 .vehicle-type-inline small{display:block;margin-top:7px;font-size:10px;color:#62758c}
 @media(max-width:750px){.vehicle-type-inline-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Resumen gerencial: tarjetas, curva PRE/POST y tabla HU compacta */
+.report-sites{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,640px),1fr));gap:14px;align-items:start}
+.report-site{min-width:0;width:auto!important;max-width:none!important}
+.report-projection{display:flex;align-items:center;gap:10px;justify-content:center;margin:5px 0 12px;font-size:12px;font-weight:700}
+.report-projection input{width:145px;padding:7px 9px;border:1px solid #c8d5e5;border-radius:7px}
+.report-site .report-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.report-site .report-kpis>.report-kpi{min-width:0;padding:9px 6px;text-align:center;border:1px solid #d8e2ef;border-radius:8px;background:#f5f8fc}
+.report-site .report-kpis>.report-kpi span{display:block;font-size:11px;color:#60748c}
+.report-site .report-kpis>.report-kpi b{display:block;font-size:17px;margin:4px 0;color:#112a49}
+.report-site .report-kpis>.report-kpi small{display:block;font-size:10px;color:#60748c}
+.report-detail{margin-top:12px;min-width:0}
+.report-detail h4{margin:4px 0 7px;font-size:13px;text-align:left}
+.report-compact-table{width:100%;border-collapse:collapse;font-size:10px}
+.report-compact-table th,.report-compact-table td{padding:5px 5px;border:1px solid #d8e2ef;text-align:center;white-space:nowrap}
+.report-compact-table th{background:#eaf0f8;color:#18304e}
+.report-detail>small{display:block;margin-top:5px;color:#687b90;font-size:10px}
+@media(max-width:700px){.report-site .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
