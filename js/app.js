@@ -861,12 +861,11 @@ function reportPreview(){
   const vehSum=source?source.reduce((sum,h)=>sum+Number(h?.veh||0),0):0;
   const ed=r?.byHour||null,projected=x.fc;
   const packagePlan=getPlan(x.site,'packages',projected);
-  const vehiclePlan=getPlan(x.site,'vehicles',0);
+  const vehiclePlan=vehSum;
   const pure=t?Math.max(0,t.vol-t.big-t.sb):null;
   const cards=[];
   const add=(label,value,detail='')=>cards.push('<div class="report-kpi"><span>'+label+'</span><b>'+value+'</b>'+(detail?'<small>'+detail+'</small>':'')+'</div>');
-  const last=r?.lastTs||t?.maxInTs||null;
-  add('Último registro de datos',last?new Date(last).toLocaleString('es-AR'):'—');
+  add('Total vehículos ingresados',source?nf.format(vehSum):'—','Base real para los porcentajes de vehículos');
   if(t){add('Inhub',nf.format(t.totalConPost),projected?percent(pct(t.totalConPost,projected))+' del proyectado':'');add('Voluminoso sin B/SB',percent(pct(pure,t.totalConPost)));add('Voluminoso con B/SB',percent(pct(t.vol,t.totalConPost)))}
   if(hu)add('Avance HU',percent(hu.avance),nf.format(hu.pendiente)+' pendientes');
   if(r||x.a)add('SPR general',r?.vehicles&&r?.packages?pf.format(r.packages/r.vehicles)+' pza/veh.':'—','Paquetes ED / vehículos de Registros');
@@ -874,12 +873,12 @@ function reportPreview(){
   const huTable=hu?'<div class="report-detail"><h4>Armado de HU · General (sin MELI Air)</h4><div class="hour-matrix-scroll"><table class="report-compact-table"><thead><tr><th>CPT</th><th>Etiquetado</th><th>HU abierto</th><th>HU cerrado</th><th>Pend. HU</th><th>% Avance</th><th>% Share</th><th>Users activos</th></tr></thead><tbody>'+hu.cpts.map(c=>'<tr><td>'+esc(c.cpt)+'</td><td>'+nf.format(c.etiquetado)+'</td><td>'+nf.format(c.abierto)+'</td><td>'+nf.format(c.cerrado)+'</td><td>'+nf.format(c.pendiente)+'</td><td>'+percent(c.avance)+'</td><td>'+percent(pct(c.etiquetado,hu.etiquetado))+'</td><td>'+c.users.size+'</td></tr>').join('')+'<tr><th>Total</th><th>'+nf.format(hu.etiquetado)+'</th><th>'+nf.format(hu.abierto)+'</th><th>'+nf.format(hu.cerrado)+'</th><th>'+nf.format(hu.pendiente)+'</th><th>'+percent(hu.avance)+'</th><th>100%</th><th>'+hu.active+'</th></tr></tbody></table></div></div>':'';
   const table=(title,series,plan,type)=>{
    if(!series)return '<div class="report-detail"><h4>'+title+'</h4><p class="muted">Cargá los datos correspondientes para ver los cortes.</p></div>';
-   return '<div class="report-detail"><h4>'+title+'</h4><table class="report-compact-table"><thead><tr><th>Corte</th><th>Ingresado</th><th>% del proyectado</th></tr></thead><tbody>'+windows.map(([label,h])=>{
+   return '<div class="report-detail"><h4>'+title+'</h4><table class="report-compact-table"><thead><tr><th>Corte</th><th>Ingresado</th><th>'+(type==='vehicles'?'% del total':'% del proyectado')+'</th></tr></thead><tbody>'+windows.map(([label,h])=>{
     const n=hourCount(series,h,label==='post20'?'post':'pre');
-    return '<tr><th>'+label+'</th><td>'+nf.format(n)+'</td><td>'+(plan>0?percent(pct(n,plan)):'Definir proyectado')+'</td></tr>';
+    return '<tr><th>'+label+'</th><td>'+nf.format(n)+'</td><td>'+(plan>0?percent(pct(n,plan)):(type==='vehicles'?'Sin vehículos':'Definir proyectado'))+'</td></tr>';
    }).join('')+'</tbody></table></div>';
   };
-  const plans='<div class="report-detail"><h4>Proyectados editables · cortes horarios</h4><div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end"><label class="report-projection">Proyectado paquetes <input type="number" min="0" step="1" data-report-plan="packages" data-report-site="'+x.site+'" value="'+(packagePlan||'')+'" placeholder="Ingresar paquetes"></label><label class="report-projection">Proyectado vehículos <input type="number" min="0" step="1" data-report-plan="vehicles" data-report-site="'+x.site+'" value="'+(vehiclePlan||'')+'" placeholder="Ingresar vehículos"></label></div><small>PRE: acumulado desde las 09:00 hasta antes del horario indicado. POST20: desde las 20:00 hasta antes de las 09:00 del día siguiente. Porcentaje = ingresado ÷ proyectado × 100.</small></div>';
+  const plans='<div class="report-detail"><h4>Base de cálculo · cortes horarios</h4><div style="display:flex;flex-wrap:wrap;gap:16px;align-items:end"><label class="report-projection">Proyectado paquetes <input type="number" min="0" step="1" data-report-plan="packages" data-report-site="'+x.site+'" value="'+(packagePlan||'')+'" placeholder="Ingresar paquetes"></label><div class="report-projection"><span>Total real de vehículos</span><strong>'+(source?nf.format(vehSum):'Sin datos')+'</strong></div></div><small>PRE: acumulado desde las 09:00 hasta antes del horario indicado. POST20: desde las 20:00 hasta antes de las 09:00 del día siguiente. Paquetes ÷ proyectado; vehículos ÷ total real.</small></div>';
   return '<section class="report-site"><h3>'+x.name+'</h3>'+plans+'<div class="report-kpis">'+cards.join('')+'</div>'+table('Paquetes · Registros descarga',ed,packagePlan,'packages')+table('Vehículos · Arribos',source,vehiclePlan,'vehicles')+huTable+'</section>';
  }).join('')+'</div>';
  host.querySelectorAll('[data-report-plan]').forEach(input=>input.addEventListener('change',()=>{
