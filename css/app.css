@@ -454,3 +454,28 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .report-compact-table th{background:#eaf0f8;color:#18304e}
 .report-detail>small{display:block;margin-top:5px;color:#687b90;font-size:10px}
 @media(max-width:700px){.report-site .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Reporte gerencial: presentación visual consistente para Soldati y Echeverría */
+#view-reporte .report-sites{grid-template-columns:minmax(0,1fr);gap:24px}
+#view-reporte .report-site{padding:18px 20px 22px;border:1px solid #cfdaeb;border-radius:14px;background:#fff}
+#view-reporte .report-site>h3{text-align:center;font-size:23px;color:#12365d;margin:2px 0 18px}
+#view-reporte .report-detail{margin-top:20px}
+#view-reporte .report-detail>h4{text-align:center;font-size:16px;font-weight:800;color:#12365d;margin:0 0 12px}
+#view-reporte .report-detail:has([data-report-plan]){background:#f5f8fd;border:1px solid #d5e1f0;border-radius:12px;padding:16px}
+#view-reporte .report-detail:has([data-report-plan])>div{justify-content:center!important;gap:24px!important}
+#view-reporte .report-projection{flex-direction:column;align-items:center;gap:7px;margin:0;font-size:13px;color:#244a76}
+#view-reporte .report-projection input{width:185px;max-width:100%;text-align:center;font-size:18px;font-weight:800;color:#12365d;background:white;padding:10px}
+#view-reporte .report-detail>small{text-align:center;line-height:1.6;margin-top:12px;font-size:11px}
+#view-reporte .report-site .report-kpis{gap:12px;margin-top:18px}
+#view-reporte .report-site .report-kpis>.report-kpi{padding:15px 12px;border-radius:11px;background:#f3f7fd}
+#view-reporte .report-site .report-kpis>.report-kpi span{font-size:12px;font-weight:600}
+#view-reporte .report-site .report-kpis>.report-kpi b{font-size:23px;line-height:1.25;margin:7px 0;font-variant-numeric:tabular-nums;color:#103b6b}
+#view-reporte .report-site .report-kpis>.report-kpi small{font-size:11px}
+#view-reporte .report-compact-table{font-size:13px;font-variant-numeric:tabular-nums}
+#view-reporte .report-compact-table th,#view-reporte .report-compact-table td{text-align:center;vertical-align:middle;padding:11px 12px}
+#view-reporte .report-compact-table thead th{font-size:12px;font-weight:800;background:#dfeaf8}
+#view-reporte .report-compact-table tbody td{font-size:15px;font-weight:800;color:#103b6b}
+#view-reporte .report-compact-table tbody th{font-size:13px;font-weight:800}
+#view-reporte .report-compact-table tbody tr:nth-child(even) td{background:#f5f8fd}
+#view-reporte .report-compact-table tbody tr:hover td{background:#e9f2ff}
+@media(max-width:700px){#view-reporte .report-site{padding:12px}#view-reporte .report-site .report-kpis>.report-kpi b{font-size:19px}#view-reporte .report-compact-table th,#view-reporte .report-compact-table td{padding:8px 5px}}
