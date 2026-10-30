@@ -1,30 +1,9 @@
-/**
- * @fileoverview HU goal plan view: dynamic per-hour objective vs real tracking.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders the HU goal plan dashboard showing per-hour dynamic objectives
- * (redistributed based on remaining faltante) vs real HU production,
- * with cumulative tracking and recovery analysis.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js, core/config.js,
- *              domain/tms.js
- *
- * Exports: huGoalView
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct, huPercent2 } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
 import { huConfig } from '../core/config.js';
 import { huSeparateAir } from '../domain/tms.js';
 
-/**
- * Build the per-hour HU goal plan for a site.
- * Calculates dynamic objectives that redistribute the faltante across remaining
- * hours, compares with real production, and renders charts + tables.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @returns {string} HTML for the goal plan section.
- */
 function huHourlyGoalPlan(site) {
   const t = state.sites[site].tms; if (!t?.hu) return '<p class="muted">Procesá TMS para ver el avance HU.</p>';
   const cfg = huConfig(site), forecast = Number($(site === 'soldati' ? 'fcS' : 'fcE')?.value) || 0;
@@ -76,9 +55,6 @@ function huHourlyGoalPlan(site) {
   return '<div class="kpi-grid"><div class="kpi"><span>Proyectado</span><b>' + fmt(forecast) + '</b></div><div class="kpi"><span>Objetivo ' + huPercent2(pctGoal) + '%</span><b>' + fmt(goal) + '</b></div><div class="kpi"><span>HU procesado (sin MELI Air)</span><b>' + fmt(processed) + '</b></div><div class="kpi"><span>Faltan para objetivo</span><b>' + fmt(Math.max(0, goal - processed)) + '</b></div></div><div class="kpi-grid"><div class="kpi"><span>Faltante actual</span><b>' + fmt(remainingNow) + '</b></div><div class="kpi"><span>Ritmo necesario desde ahora</span><b>' + (remainingTime ? fmt(currentRequired) + ' pza/h' : 'Sin horas restantes') + '</b></div></div><p class="muted">Objetivo dinámico: en cada hora se redistribuye el faltante entre las horas restantes. Las horas anteriores se reconstruyen con el TMS cargado; no son metas históricas guardadas. MELI Air excluido. La tabla permite ver la recuperación hora por hora.</p>' + chart('Producción HU por hora · objetivo vs real', 'targetHour', 'real', 'Objetivo por hora', 'Real por hora') + chart('Avance HU acumulado · objetivo vs real', 'targetAccum', 'actualAccum', 'Meta acumulada', 'Real acumulado') + '<div class="plan-table-wrap"><table class="hu-table plan-table"><tr><th>Hora</th><th>Objetivo dinámico / hora</th><th>HU real / hora</th><th>Diferencia / hora</th><th>Meta al finalizar hora</th><th>Real acumulado</th><th>Faltante después</th></tr>' + rows.map(x => '<tr><td>' + String(x.h).padStart(2, '0') + ':00</td><td>' + fmt(x.targetHour) + '</td><td>' + (x.real === null ? 'Pendiente' : fmt(x.real)) + '</td><td>' + (x.diff === null ? '—' : (x.diff > 0 ? '+' : '') + fmt(x.diff)) + '</td><td>' + fmt(x.targetAccum) + '</td><td>' + (x.actualAccum === null ? '—' : fmt(x.actualAccum)) + '</td><td>' + (x.remainingAfter === null ? '—' : fmt(x.remainingAfter)) + '</td></tr>').join('') + '</table></div>' + (prior ? '<p class="muted">Nota de conciliación: ' + fmt(prior) + ' piezas procesadas del total HU no están distribuidas en las horas visibles. Se incorporan solo al acumulado real inicial, no a la producción horaria.</p>' : '');
 }
 
-/**
- * Render the HU goal plan view for all sites.
- */
 export function huGoalView() {
   const host = $('huplanView'); if (!host) return;
   host.innerHTML = ['soldati', 'echeverria'].map(site => '<section class="plan-site"><h3>' + names[site] + '</h3>' + huHourlyGoalPlan(site) + '</section>').join('');

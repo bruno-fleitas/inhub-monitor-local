@@ -1,24 +1,11 @@
-/**
- * @fileoverview Curves view: hourly matrices, flow charts, vehicle distribution, arrivals tables.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders the per-site curves dashboard with configurable hour ranges, ED/TMS
- * hourly matrices, vehicle SPR matrices, vehicle distribution charts,
- * arrivals-vs-TMS flow curves, and HU hourly tables.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js,
- *              core/config.js, domain/tms.js, domain/arrivals.js
- *
- * Exports: curves
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct, esc } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
 import { huSeparateAir } from '../domain/tms.js';
 import { universe } from '../domain/arrivals.js';
 
-/** Get the configured hour range for a site's curve display. */
+/*--------- CONTROLES DE RANGO HORARIO ---------*/
+
 function curveHourRange(site) {
   const v = state.config.curveHourRanges?.[site] || {};
   const from = Number.isInteger(v.from) ? v.from : Math.max(0, Math.min(23, Number(state.config.curveStart ?? 9)));
@@ -26,14 +13,12 @@ function curveHourRange(site) {
   return { from, to, hours: Array.from({ length: (to - from + 24) % 24 + 1 }, (_, i) => (from + i) % 24) };
 }
 
-/** Render the range selector controls for a site. */
 function curveRangeControls(site) {
   const { from, to } = curveHourRange(site);
   const opts = selected => Array.from({ length: 24 }, (_, h) => '<option value="' + h + '"' + (h === selected ? ' selected' : '') + '>' + String(h).padStart(2, '0') + ':00</option>').join('');
   return '<div class="toolbar curve-range" data-curve-range="' + site + '"><strong>Rango horario ED / TMS / vehículos / SPR</strong><label>Desde <select data-range-from>' + opts(from) + '</select></label><label>Hasta <select data-range-to>' + opts(to) + '</select></label><button class="primary" data-apply-curve-range="' + site + '">Aplicar rango</button><button class="secondary" data-reset-curve-range="' + site + '">Restablecer</button></div>';
 }
 
-/** Bind curve range apply/reset handlers. */
 function bindCurveRanges() {
   document.querySelectorAll('[data-apply-curve-range]').forEach(btn => btn.onclick = () => {
     const site = btn.dataset.applyCurveRange, el = document.querySelector('[data-curve-range="' + site + '"]');
@@ -48,7 +33,8 @@ function bindCurveRanges() {
   });
 }
 
-/** Render the ED/TMS hourly matrix for a site. */
+/*--------- MATRIZ ED / TMS ---------*/
+
 function operationalHourMatrix(site) {
   const d = state.sites[site], ed = d.registros?.byHour || null, tms = d.tms?.by || null, arr = d.arrivals?.h || d.registros?.vehiclesByHour || null;
   if (!ed && !tms && !arr) return '';
@@ -76,7 +62,8 @@ function operationalHourMatrix(site) {
   return '<section class="hour-matrix"><h3>Control horario · ED / TMS</h3><p class="muted">ACUM · TMS y % ED son acumulados continuos desde la hora inicial configurada. El SPR se presenta en el cuadro de vehículos.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>' + hours.map(h => '<th>' + String(h).padStart(2, '0') + ':00</th>').join('') + '<th>TOTAL</th></tr></thead><tbody>' + definitions.map(([label, key, format, total, available]) => '<tr><th>' + label + '</th>' + hours.map((h, i) => '<td>' + (available ? format(values[key][i]) : '—') + '</td>').join('') + '<td class="matrix-total">' + (available ? (key === 'share' ? pctFmt(total) : key === 'spr' ? total === null ? '—' : total.toLocaleString('es-AR', { maximumFractionDigits: 1 }) : fmt(total)) : '—') + '</td></tr>').join('') + '</tbody></table></div></section>';
 }
 
-/** Render the vehicle SPR matrix for a site. */
+/*--------- MATRIZ VEHICULOS Y SPR ---------*/
+
 function vehicleSprMatrix(site) {
   const d = state.sites[site], a = d.arrivals, r = d.registros;
   const hours = curveHourRange(site).hours;
@@ -104,7 +91,8 @@ function vehicleSprMatrix(site) {
   return '<section class="hour-matrix vehicle-spr-matrix"><h3>Vehículos y SPR por hora</h3><p class="muted">Vehículos: Arribos o registros únicos de Easy Docking (si no hay Arribos). Paquetes: reporte ED. SPR = paquetes ED / vehículos de la misma hora. Sin vehículos disponibles se muestra —; no se usan estimaciones.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>' + hours.map(h => '<th>' + String(h).padStart(2, '0') + ':00</th>').join('') + '<th>TOTAL</th></tr></thead><tbody>' + rows.map(([label, values, format, total]) => '<tr><th>' + label + '</th>' + values.map(x => '<td>' + format(x) + '</td>').join('') + '<td class="matrix-total">' + total + '</td></tr>').join('') + '</tbody></table></div>' + typeMatrix + '</section>';
 }
 
-/** Render the vehicle distribution donut chart with labeled segments. */
+/*--------- DISTRIBUCION DE VEHICULOS ---------*/
+
 function vehicleDistribution(site) {
   const d = state.sites[site], v = d.registros?.vehicleTypes;
   if (!v) return d.arrivals ? vehiclePieFromArrivals(d.arrivals) : '';
@@ -122,7 +110,6 @@ function vehicleDistribution(site) {
   return '<section class="vehicle-dist"><div class="vehicle-dist-heading"><div><h3>Distribución por tipo de vehículo</h3><p class="muted">Vehículos y paquetes recibidos por tipo · Easy Docking</p></div><div class="vehicle-dist-summary"><b>' + nf.format(total) + '</b> vehículos <span>·</span> <b>' + nf.format(packages) + '</b> piezas</div></div><div class="vehicle-dist-layout"><div class="vehicle-dist-chart"><div class="vehicle-dist-pie" style="background:conic-gradient(' + gradient + ')"><div>' + nf.format(total) + '<small>vehículos</small></div></div>' + labels + '</div><div class="vehicle-dist-cards">' + items.map(x => '<div class="vehicle-dist-card" style="--vehicle-color:' + x.color + '"><div class="vehicle-dist-card-top"><b><i></i>' + x.label + '</b><strong>' + (x.veh / total * 100).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%</strong></div><div class="vehicle-dist-card-stats"><span>VEHÍCULOS <b>' + nf.format(x.veh) + '</b></span><span>PIEZAS RECIBIDAS <b>' + nf.format(x.packages) + '</b><em>' + (packages ? x.packages / packages * 100 : 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '% de piezas</em></span></div></div>').join('') + '<div class="vehicle-dist-total">TOTAL · ' + nf.format(total) + ' vehículos · ' + nf.format(packages) + ' piezas</div></div></div></section>';
 }
 
-/** Simple vehicle pie from arrivals (fallback when no registros). */
 function vehiclePieFromArrivals(a) {
   if (!a?.ok) return '';
   const cm = a.camionetaMeli || 0, co = a.camionetaOther ?? Math.max(0, (a.camioneta || 0) - cm);
@@ -135,7 +122,8 @@ function vehiclePieFromArrivals(a) {
   return '<section class="vehicle-dist"><div class="vehicle-dist-heading"><div><h3>Distribución por tipo de vehículo</h3><p class="muted">Participación de vehículos · Arribos</p></div></div><div class="vehicle-dist-layout"><div class="vehicle-dist-chart"><div class="vehicle-dist-pie" style="background:conic-gradient(' + stops + ')"><div>' + nf.format(total) + '<small>vehículos</small></div></div></div><div class="vehicle-dist-cards">' + items.filter(x => x[1] > 0).map(x => '<div class="vehicle-dist-card" style="--vehicle-color:' + x[2] + '"><div class="vehicle-dist-card-top"><b><i></i>' + x[0] + '</b><strong>' + pf.format(pct(x[1], total)) + '%</strong></div><div class="vehicle-dist-card-stats"><span>VEHÍCULOS <b>' + nf.format(x[1]) + '</b></span></div></div>').join('') + '</div></div></section>';
 }
 
-/** Render the arrivals-vs-TMS flow curve SVG chart with data table. */
+/*--------- CURVA ARRIBADO VS TMS ---------*/
+
 function flowCurve(d, start) {
   if (!d.tms || !d.registros) return '';
   const rows = []; let arAc = 0, inAc = 0;
@@ -153,7 +141,8 @@ function flowCurve(d, start) {
   return '<div class="flow-curve"><div class="flow-title"><div><h3>Arribado vs Ingresado TMS por hora</h3><small>ED = Reporte de Registros · TMS = Inbound Date Included. Valores visibles en cada punto.</small></div><div class="flow-legend"><span class="flow-arr">● Arribado ED</span><span class="flow-in">● Ingresado TMS</span></div></div><div class="flow-point-scroll"><svg class="flow-point-svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Curva horaria de arribado e ingresado con cantidades en cada punto"><line x1="' + left + '" y1="' + (top + plotH) + '" x2="' + (W - right) + '" y2="' + (top + plotH) + '" stroke="#64748b"/><polyline points="' + points('ar') + '" fill="none" stroke="#2996ee" stroke-width="2.5"/><polyline points="' + points('inh') + '" fill="none" stroke="#20a783" stroke-width="2.5"/>' + series('ar', '#55b6ff', -12) + series('inh', '#43d5aa', 18) + labels + '</svg></div><div class="scroll"><table><tr><th>Hora</th><th>Arribado ED</th><th>Ingresado TMS</th><th>Brecha hora</th><th>Arribado acum.</th><th>TMS acum.</th><th>Brecha acum.</th></tr>' + rows.map(x => '<tr><td>' + String(x.h).padStart(2, '0') + ':00</td><td>' + nf.format(x.ar) + '</td><td>' + nf.format(x.inh) + '</td><td>' + nf.format(x.ar - x.inh) + '</td><td>' + nf.format(x.arAc) + '</td><td>' + nf.format(x.inAc) + '</td><td>' + nf.format(x.arAc - x.inAc) + '</td></tr>').join('') + '</table></div></div>';
 }
 
-/** Render the HU hourly bipeo table and bar chart. */
+/*--------- TABLAS HU Y ARRIBOS ---------*/
+
 function huHourlyTable(t) {
   const vals = (t.hu?.byHour || []).map((v, h) => ({ h, v })).filter(x => x.v > 0);
   if (!vals.length) return '<div class="hu-empty">Sin bipeos HU por hora para la fecha seleccionada.</div>';
@@ -161,14 +150,12 @@ function huHourlyTable(t) {
   return '<div class="hu-bipe-grid"><div><table class="hu-table compact"><tr><th>Hora</th><th>HU / piezas</th></tr>' + vals.map(x => '<tr><td>' + x.h + '</td><td>' + nf.format(x.v) + '</td></tr>').join('') + '<tr class="total"><td>Total general</td><td>' + nf.format(total) + '</td></tr></table></div><div><div class="hu-prom"><span>Promedio produc. total</span><b>' + nf.format(Math.round(prom)) + '</b></div></div></div><div class="hu-bars">' + vals.map(x => '<div class="hu-bar-item"><span>' + x.h + '</span><div class="hu-bar-track"><i style="height:' + Math.max(3, pct(x.v, max)) + '%"></i></div><b>' + nf.format(x.v) + '</b></div>').join('') + '</div>';
 }
 
-/** Render the arrivals detail table. */
 function arrTable(a, start) {
   const u = universe(a, start); let cp = 0, cv = 0, r = '';
   for (let h = start; h <= 23; h++) { cp += a.h[h].ship; cv += a.h[h].veh; r += '<tr><td>' + h + ':00</td><td>' + nf.format(a.h[h].ship) + '</td><td>' + nf.format(cp) + '</td><td>' + pf.format(pct(cp, u.packages)) + '%</td><td>' + nf.format(a.h[h].veh) + '</td><td>' + nf.format(cv) + '</td><td>' + pf.format(pct(cv, u.vehicles)) + '%</td></tr>'; }
   return '<div class="scroll"><table><tr><th>Hora</th><th>Paquetes</th><th>Paq. acum.</th><th>% paq.</th><th>Veh.</th><th>Veh. acum.</th><th>% veh.</th></tr>' + r + '</table></div>';
 }
 
-/** Render the vehicle share table from arrivals. */
 function vehicleShareTable(a) {
   if (!a?.ok) return '';
   const cm = a.camionetaMeli || 0, co = a.camionetaOther ?? Math.max(0, (a.camioneta || 0) - cm);
@@ -176,11 +163,6 @@ function vehicleShareTable(a) {
   return '<div class="vehicle-share"><h4>Participación por tipo de unidad</h4><table><tr><th>Unidad</th><th>Q</th><th>%</th></tr>' + rows.map(([u, n]) => '<tr><td>' + u + '</td><td>' + nf.format(n) + '</td><td>' + pf.format(pct(n, a.veh)) + '%</td></tr>').join('') + '<tr><td><b>Total vehículos</b></td><td><b>' + nf.format(a.veh) + '</b></td><td><b>100,0%</b></td></tr></table></div>';
 }
 
-/**
- * Render the curves view for all sites with data.
- * Includes hour-range controls, ED/TMS matrices, vehicle distribution,
- * flow curves, HU hourly tables and arrivals detail.
- */
 export function curves() {
   const start = state.config.curveStart;
   let h = '';

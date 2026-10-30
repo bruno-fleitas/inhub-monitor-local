@@ -1,23 +1,5 @@
-/**
- * @fileoverview Dynamic UI injection: adds runtime-generated DOM elements.
- *
- * UI infrastructure layer of the hexagonal architecture.
- * Injects projected-amount inputs, CPT selectors, and export buttons into the
- * existing HTML structure. Also populates the jornales, mail and report view
- * containers with their initial toolbar HTML.
- *
- * Dependencies: core/dom.js
- *
- * Exports: injectUI
- */
-
 import { $ } from '../core/dom.js';
 
-/**
- * Inject dynamic UI elements that aren't in the static HTML.
- * Adds per-site projection inputs and CPT selectors, export/PPT buttons,
- * and initialises the jornales, mail and report view toolbars.
- */
 export function injectUI() {
   for (const [site, suf] of [['soldati', 'S'], ['echeverria', 'E']]) {
     const grid = $('status' + suf).closest('article').querySelector('.source-grid');

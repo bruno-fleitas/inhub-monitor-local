@@ -1,26 +1,8 @@
-/**
- * @fileoverview Jornales (staffing) view: KPIs, detail modal and analysis runner.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders jornales tenure KPIs per site, a clickable detail modal with per-record
- * data, and orchestrates the jornales analysis via the persistent worker.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js,
- *              core/workers.js
- *
- * Exports: jornales, runJ
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct, esc } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
 import { calcJ } from '../core/workers.js';
 
-/**
- * Run jornales analysis for both sites based on UI inputs.
- * Reads day, gerencia and tenure cutoffs from DOM inputs.
- * @returns {Promise<void>}
- */
 export async function runJ() {
   const day = $('jorDate').value || state.config.analysisDate || state.sites.soldati.jornalesMeta?.latestDate || state.sites.echeverria.jornalesMeta?.latestDate;
   if (!day) return;
@@ -29,22 +11,10 @@ export async function runJ() {
   renderAll();
 }
 
-/**
- * Render a jornales KPI button that opens the detail modal on click.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @param {string} filter - Filter key for the detail modal ('all', 'today', 'a', 'b', 'c').
- * @param {string} label - KPI label.
- * @param {number} value - KPI value.
- * @param {string} [small] - Optional small text.
- * @returns {string} HTML for the KPI button.
- */
 function jorKpi(site, filter, label, value, small = '') {
   return `<button class="kpi jor-kpi" data-jor-site="${site}" data-jor-filter="${filter}"><span>${label}</span><b>${nf.format(value)}</b>${small ? `<small>${small}</small>` : ''}<em>Ver detalle</em></button>`;
 }
 
-/**
- * Render the jornales view for all sites with results.
- */
 export function jornales() {
   let h = '<div class="grid two">', any = false;
   for (const site of ['soldati', 'echeverria']) {
@@ -58,11 +28,6 @@ export function jornales() {
   bindJorDetails();
 }
 
-/**
- * Show a detail modal with filtered jornales records for a site.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @param {string} filter - 'all', 'today', 'a', 'b', 'c'.
- */
 function showJorDetail(site, filter) {
   const q = state.sites[site].jornalesResult;
   if (!q) return;
@@ -81,15 +46,11 @@ function showJorDetail(site, filter) {
   m.onclick = e => { if (e.target === m) m.classList.remove('open'); };
 }
 
-/** Bind jornales KPI click handlers to open the detail modal. */
 function bindJorDetails() {
   document.querySelectorAll('[data-jor-site]').forEach(b => b.onclick = () => showJorDetail(b.dataset.jorSite, b.dataset.jorFilter));
 }
 
 // ── Import renderAll lazily to avoid circular dependency ──
 let renderAll = () => {};
-/**
- * Set the renderAll callback (called from app.js after initial render).
- * @param {function} fn - The renderAll function.
- */
+
 export function setRenderAll(fn) { renderAll = fn; }

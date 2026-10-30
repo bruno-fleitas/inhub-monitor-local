@@ -1,16 +1,3 @@
-/**
- * @fileoverview Operation view: speed panel, KPIs, arrivals cuts.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders the per-site operation dashboard with speed-of-discharge panel,
- * arrivals KPIs and cutoff tables.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js, core/time.js,
- *              core/config.js, domain/tms.js, domain/arrivals.js
- *
- * Exports: operation
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
@@ -19,12 +6,6 @@ import { hoursUntil } from '../core/time.js';
 import { tmsHourlyVelocity } from '../domain/tms.js';
 import { cut, cuts } from '../domain/arrivals.js';
 
-/**
- * Render the speed-of-discharge panel for a site.
- * Shows projected, arrived, scanned (bipeado), velocity and required velocity.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @returns {string} HTML for the speed panel.
- */
 export function speedPanel(site) {
   const d = state.sites[site], r = d.registros, t = d.tms, fc = Number($(site === 'soldati' ? 'fcS' : 'fcE')?.value) || 0;
   if (!r && !t && !d.arrivals) return '';
@@ -54,11 +35,6 @@ export function speedPanel(site) {
   </div>`;
 }
 
-/**
- * Render the Inhub mini-summary used inside the HU dashboard right panel.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @returns {string} HTML for the mini panel.
- */
 export function huInhubMini(site) {
   const d = state.sites[site], t = d.tms, r = d.registros, a = d.arrivals;
   const fc = Number($(site === 'soldati' ? 'fcS' : 'fcE')?.value) || 0;
@@ -85,9 +61,6 @@ export function huInhubMini(site) {
     row('Velocidad real (pza/h)', velocity, '—') + '</table><small>Arribado: ' + (r ? 'Reporte de registros' : a ? 'Arribos' : 'sin fuente') + ' · Bipeado: TMS Inbound Date Included · velocidad: TMS (piezas de la hora actual / minutos desde HH:00). Los datos no disponibles se muestran como —.</small></div>';
 }
 
-/**
- * Bind speed target time inputs to trigger a re-render on change.
- */
 function bindSpeedTargets() {
   document.querySelectorAll('[data-speed-target]').forEach(el => el.onchange = () => {
     state.config.speedTargetTime[el.dataset.speedTarget] = el.value || '22:00';
@@ -95,10 +68,6 @@ function bindSpeedTargets() {
   });
 }
 
-/**
- * Render the operation view for all sites with data.
- * Includes speed panel, arrivals KPIs and cutoff tables.
- */
 export function operation() {
   const start = state.config.curveStart;
   let h = '', any = false;

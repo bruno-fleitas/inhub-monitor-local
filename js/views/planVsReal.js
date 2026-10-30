@@ -1,25 +1,7 @@
-/**
- * @fileoverview Plan vs Real vehicle view with editable hourly plan.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders an editable per-hour vehicle plan (Camioneta/Chasis/Semi) with
- * automatic real data from arrivals or registros, a comparison chart,
- * and localStorage persistence.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js
- *
- * Exports: planVsReal
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, huPercent2 } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
 
-/**
- * Render the Plan vs Real view for all sites.
- * Each site gets an editable plan table, a line chart comparing plan vs real,
- * and KPI summary with compliance percentage.
- */
 export function planVsReal() {
   const host = $('planView'); if (!host) return;
   const hours = Array.from({ length: 14 }, (_, i) => i + 9);

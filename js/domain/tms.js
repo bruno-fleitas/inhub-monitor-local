@@ -1,27 +1,8 @@
-/**
- * @fileoverview TMS domain logic: classification, HU tracking, DOT monitoring.
- *
- * Domain layer of the hexagonal architecture. Contains pure business logic for
- * TMS package classification, HU (Hub Unit) progress tracking, and Dispatch On
- * Time (DOT) compliance evaluation. These functions operate on processed worker
- * results and do not touch the DOM.
- *
- * Dependencies: core/formatters.js, core/config.js, core/state.js, core/time.js
- *
- * Exports: num, classify, isVolumetric, tmsHourlyVelocity, huCptRows, huActiveUsers,
- *          huSeparateAir, huPct, huTone, huDetailRows, huCptTracking,
- *          dotTarget, dotDay, dotTime, dotCptTime, dotData, dotExport, dotVisibleRows
- */
-
 import { nf, pf, pct } from '../core/formatters.js';
 import { masters, huConfig } from '../core/config.js';
 import { state, dotExclusions, names } from '../core/state.js';
 
-/**
- * Parse a numeric value from a TMS cell, handling Argentine/European number formats.
- * @param {*} v - The raw cell value.
- * @returns {number} The parsed number or 0.
- */
+/*--------- PARSING DE NUMEROS Y CLASIFICACION ---------*/
 export function num(v) {
   if (v == null || v === '') return 0;
   if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
@@ -34,15 +15,6 @@ export function num(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
-/**
- * Classify a TMS package by dimensions/weight into a size category.
- * Dimensions are in centimeters, weight in grams (both TMS formats).
- * @param {number} w - Weight in grams.
- * @param {number} h - Height in cm.
- * @param {number} l - Length in cm.
- * @param {number} wi - Width in cm.
- * @returns {'SuperBigger'|'Bigger'|'Voluminoso'|'Paqueteria'} The classification.
- */
 export function classify(w, h, l, wi) {
   w = num(w); h = num(h); l = num(l); wi = num(wi);
   const kg = w / 1000;
@@ -52,22 +24,12 @@ export function classify(w, h, l, wi) {
   return 'Paqueteria';
 }
 
-/**
- * Check if a classification is volumetric (not standard paqueteria).
- * @param {string} classification - The classify() result.
- * @returns {boolean}
- */
 export function isVolumetric(classification) {
   return classification !== 'Paqueteria';
 }
 
-/**
- * Calculate the real-time hourly velocity of TMS scanning.
- * Uses the same rule as BUSCARV(HORA(W4);BF:BH;3;0): pieces of the current hour
- * divided by minutes since HH:00.
- * @param {object} t - TMS result from the worker.
- * @returns {number|null} Pieces per hour, or null if no data.
- */
+/*--------- VELOCIDAD TMS ---------*/
+
 export function tmsHourlyVelocity(t) {
   if (!t?.by?.length || !Number.isFinite(t.maxInTs)) return null;
   const dt = new Date(t.maxInTs), h = dt.getHours();
@@ -77,12 +39,8 @@ export function tmsHourlyVelocity(t) {
   return minutes > 0 ? qty * 60 / minutes : null;
 }
 
-/**
- * Build CPT-level HU tracking rows from TMS subca data and master config.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @param {object} t - TMS result (already separated from MELI Air).
- * @returns {Array<object>} CPT rows with etiquetado/abierto/cerrado/pendiente/users.
- */
+/*--------- CALCULOS HU ---------*/
+
 export function huCptRows(site, t) {
   const mp = new Map(masters[site].map(x => [String(x.subca).trim().toUpperCase(), x]));
   const m = new Map();
@@ -99,12 +57,6 @@ export function huCptRows(site, t) {
   return [...m.values()].sort((a, b) => String(a.cpt).localeCompare(String(b.cpt), 'es', { numeric: true }));
 }
 
-/**
- * Get users with HU activity within the configured time window.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @param {object} t - TMS result.
- * @returns {Array<object>} Active user activity entries.
- */
 export function huActiveUsers(site, t) {
   const cfg = huConfig(site), mins = Math.max(1, Number(cfg.activeMinutes) || 10), max = t.hu?.maxOutTs;
   if (max == null) return [];
@@ -112,12 +64,6 @@ export function huActiveUsers(site, t) {
   return src.filter(x => max - x.last < mins * 60000);
 }
 
-/**
- * Separate TMS data into normal and MELI Air subsets based on SubCA naming.
- * MELI Air SubCAs end with `_A` (case-insensitive).
- * @param {object} t - Full TMS result.
- * @returns {{normal:object, meli:object}} Separated TMS objects.
- */
 export function huSeparateAir(t) {
   const air = g => /_A$/i.test(String(g.subca || '').trim());
   const split = flag => (t.hu?.subca || []).filter(g => air(g) === flag);
@@ -132,18 +78,10 @@ export function huSeparateAir(t) {
   };
 }
 
-/** HU advance percentage for a CPT row. */
 export const huPct = x => x.etiquetado ? pct(x.abierto + x.cerrado, x.etiquetado) : 0;
 
-/** CSS class for HU tone based on value vs objective. */
 export const huTone = (v, obj) => v >= obj ? 'hu-good' : 'hu-bad';
 
-/**
- * Build per-SubCA detail rows with master config enrichment and active users.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @param {object} t - TMS result (normal, without MELI Air).
- * @returns {Array<object>} Detail rows sorted by CPT then etiquetado.
- */
 export function huDetailRows(site, t) {
   const mp = new Map(masters[site].map(x => [String(x.subca).trim().toUpperCase(), x]));
   const activeBySub = new Map();
@@ -166,12 +104,6 @@ export function huDetailRows(site, t) {
   }).sort((a, b) => String(a.cpt).localeCompare(String(b.cpt), 'es', { numeric: true }) || b.etiquetado - a.etiquetado);
 }
 
-/**
- * Build CPT-level tracking groups from per-SubCA detail rows.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @param {object} t - TMS result.
- * @returns {Array<object>} CPT groups with aggregated metrics and user lists.
- */
 export function huCptTracking(site, t) {
   const rows = huDetailRows(site, t), groups = new Map();
   for (const r of rows) {
@@ -189,13 +121,8 @@ export function huCptTracking(site, t) {
   })).sort((a, b) => String(a.cpt).localeCompare(String(b.cpt), 'es', { numeric: true }));
 }
 
-// ── DOT (Dispatch On Time) domain logic ──
+/*--------- DOT - DISPATCH ON TIME ---------*/
 
-/**
- * Get or lazily initialise the DOT configuration for a site.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @returns {object} DOT config with date, objective, filters, etc.
- */
 export function dotTarget(site) {
   state.config.dot ??= {};
   const c = state.config.dot[site] ??= {};
@@ -211,35 +138,17 @@ export function dotTarget(site) {
   return c;
 }
 
-/**
- * Format a timestamp as a "YYYY-MM-DD" date string.
- * @param {number} ts - Epoch milliseconds.
- * @returns {string} Date string.
- */
 export function dotDay(ts) {
   const d = new Date(ts);
   return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
 }
 
-/**
- * Build a timestamp from a day string and HH:MM time, with optional day offset.
- * @param {string} day - "YYYY-MM-DD".
- * @param {string} time - "HH:MM".
- * @param {number} [plus=0] - Days to add.
- * @returns {number|null} Epoch ms or null.
- */
 export function dotTime(day, time, plus = 0) {
   if (!day || !time) return null;
   const [y, m, d] = day.split('-').map(Number), [h, min] = time.split(':').map(Number);
   return new Date(y, m - 1, d + plus, h, min || 0, 0).getTime();
 }
 
-/**
- * Parse a CPT value (e.g. "10", "10:30") and return a deadline timestamp for the given day.
- * @param {string} day - "YYYY-MM-DD".
- * @param {string|number} cpt - CPT hour or "HH:MM".
- * @returns {number|null} Epoch ms or null if invalid.
- */
 export function dotCptTime(day, cpt) {
   if (!day || cpt == null) return null;
   const m = String(cpt).trim().match(/^(\d{1,2})(?::(\d{2}))?$/);
@@ -247,13 +156,6 @@ export function dotCptTime(day, cpt) {
   return dotTime(day, m[1].padStart(2, '0') + ':' + (m[2] || '00'));
 }
 
-/**
- * Evaluate DOT compliance for all TMS dotRows of a site.
- * Classifies each shipment as onTime, delay, pending, or sinCpt.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @param {object} t - TMS result.
- * @returns {object} DOT evaluation with rows, totals, groups, percentages.
- */
 export function dotData(site, t) {
   const cfg = dotTarget(site), src = t.dotRows || [], master = new Map(masters[site].map(x => [String(x.subca).trim().toUpperCase(), x]));
   const start = dotTime(cfg.date, '00:00', -1), end = dotTime(cfg.date, '00:00'), now = Date.now(), exclusions = dotExclusions[site];
@@ -284,10 +186,6 @@ export function dotData(site, t) {
   };
 }
 
-/**
- * Export DOT detail rows as a CSV file download.
- * @param {string} site - 'soldati' or 'echeverria'.
- */
 export function dotExport(site) {
   const t = state.sites[site].tms; if (!t) return;
   const d = dotData(site, t), rows = dotVisibleRows(site, d);
@@ -299,12 +197,6 @@ export function dotExport(site) {
   a.href = url; a.download = 'Auditoria_DOT_' + site + '_' + d.date + '.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/**
- * Filter DOT rows based on the site's current DOT filter configuration.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @param {object} d - DOT evaluation result from dotData().
- * @returns {Array<object>} Filtered rows.
- */
 export function dotVisibleRows(site, d) {
   const cfg = dotTarget(site), q = (cfg.search || '').toLowerCase().trim();
   return d.rows.filter(x =>

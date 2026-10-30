@@ -1,23 +1,7 @@
-/**
- * @fileoverview Dock productivity dashboard view.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders per-dock productivity tiles with velocity, user breakdown,
- * and camioneta/chasis grouping with configurable threshold.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js
- *
- * Exports: dockDashboard
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct, esc } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
 
-/**
- * Render the dock productivity dashboard for all sites with TMS data.
- * Groups docks into Camionetas (>= threshold) and Chasis (< threshold).
- */
 export function dockDashboard() {
   let html = '';
   for (const site of ['soldati', 'echeverria']) {

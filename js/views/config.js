@@ -1,27 +1,9 @@
-/**
- * @fileoverview Configuration view: SubCA master table editor.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders the editable SubCA master configuration table with add/delete/reset
- * actions, persists changes via core/config.js, and triggers a subca re-render
- * on save.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js, core/config.js
- *
- * Exports: masterUI
- */
-
 import { $ } from '../core/dom.js';
 import { esc } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
 import { masters, save } from '../core/config.js';
 import { subca } from './subca.js';
 
-/**
- * Render the SubCA master configuration editor for both sites.
- * Binds add/delete/reset and field-change handlers that persist to localStorage
- * and re-render the subca view.
- */
 export function masterUI() {
   let h = '';
   for (const site of ['soldati', 'echeverria'])

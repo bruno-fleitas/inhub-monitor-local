@@ -1,22 +1,7 @@
-/**
- * @fileoverview Executive summary view.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders the top-level KPI summary cards for each site with available data.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js
- *
- * Exports: summary
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
 
-/**
- * Render the executive summary cards for all sites with data.
- * Displays TMS, labelless, arrivals, registros and jornales KPIs.
- */
 export function summary() {
   let h = '<div class="summary-sites">', any = false;
   for (const site of ['soldati', 'echeverria']) {

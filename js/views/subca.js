@@ -1,21 +1,8 @@
-/**
- * @fileoverview SubCA/CPT analysis view with filters and rankings.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders the SubCA participation dashboard with interactive filters (search,
- * SubCA, Ola, CPT, Indicador), ranking cards and detailed tables.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js, core/config.js
- *
- * Exports: subca
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct, esc } from '../core/formatters.js';
 import { state, names, subcaFilters } from '../core/state.js';
 import { masters } from '../core/config.js';
 
-/** Build a site's SubCA configuration object from TMS groups and master data. */
 function cfg(site) {
   const t = state.sites[site].tms;
   if (!t) return null;
@@ -27,7 +14,6 @@ function cfg(site) {
   return { total: t.totalConPost, groups, unknown: groups.filter(g => g.subca !== 'SIN SUBCA' && !mp.has(String(g.subca).trim().toUpperCase())) };
 }
 
-/** Aggregate filtered groups by CPT. */
 function cpts(s) {
   const m = new Map();
   for (const g of s.groups) {
@@ -39,17 +25,14 @@ function cpts(s) {
   return [...m.values()];
 }
 
-/** Unique sorted values from an array, filtering out empty/null. */
 function uniq(a) {
   return [...new Set(a.filter(x => x !== '' && x != null))].sort((a, b) => String(a).localeCompare(String(b), 'es', { numeric: true }));
 }
 
-/** Build an <option> list with a current selection. */
 function optionList(values, current) {
   return '<option value="__ALL__">Todos</option>' + values.map(v => `<option value="${esc(v)}" ${String(v) === String(current) ? 'selected' : ''}>${esc(v)}</option>`).join('');
 }
 
-/** Apply the current filter state to a site's groups. */
 function applySubFilters(site, s) {
   const f = subcaFilters[site];
   return s.groups.filter(g => {
@@ -63,7 +46,6 @@ function applySubFilters(site, s) {
   });
 }
 
-/** Render the filter bar for a site. */
 function subFilterBar(site, s) {
   const f = subcaFilters[site];
   return `<div class="subca-filters">
@@ -76,7 +58,6 @@ function subFilterBar(site, s) {
   </div>`;
 }
 
-/** Bind filter input/change handlers. */
 function bindSubFilters() {
   document.querySelectorAll('[data-sf-site]').forEach(el => {
     const evt = el.tagName === 'INPUT' ? 'input' : 'change';
@@ -85,24 +66,18 @@ function bindSubFilters() {
   document.querySelectorAll('[data-sf-clear]').forEach(b => b.onclick = () => { subcaFilters[b.dataset.sfClear] = { q: '', subca: '__ALL__', ola: '__ALL__', cpt: '__ALL__', indicador: '__ALL__' }; subca(); });
 }
 
-/** Render a ranking card. */
 function rank(title, a, v, n = 'subca') {
   return `<div class="rank-card"><h4>${title}</h4><table>${a.map((x, i) => `<tr><td>${i + 1}. ${esc(x[n])}</td><td>${pf.format(v(x))}</td></tr>`).join('')}</table></div>`;
 }
 
-/** Render the SubCA participation table. */
 function subTable(s) {
   return `<div class="scroll"><table><tr><th>SubCA</th><th>Ola</th><th>CPT</th><th>Indicador</th><th>Piezas</th><th>% part.</th><th>Vol.</th><th>% Vol.</th><th>Bigger</th><th>SB</th></tr>${s.groups.slice().sort((a, b) => b.total - a.total).map(g => `<tr><td>${esc(g.subca)}</td><td>${esc(g.ola || '-')}</td><td>${g.cpt === '' ? '-' : g.cpt}</td><td>${esc(g.indicador || '-')}</td><td>${nf.format(g.total)}</td><td>${pf.format(pct(g.total, s.total))}%</td><td>${nf.format(g.vol)}</td><td>${pf.format(pct(g.vol, g.total))}%</td><td>${nf.format(g.big)}</td><td>${nf.format(g.sb)}</td></tr>`).join('')}</table></div>`;
 }
 
-/** Render the CPT participation table. */
 function cptTable(s, cs) {
   return `<div class="scroll"><table><tr><th>CPT</th><th>Piezas</th><th>% part.</th><th>Vol.</th><th>% Vol.</th><th>Bigger</th><th>SB</th><th>Q SubCA</th></tr>${cs.map(x => `<tr><td>${x.cpt}</td><td>${nf.format(x.total)}</td><td>${pf.format(pct(x.total, s.total))}%</td><td>${nf.format(x.vol)}</td><td>${pf.format(pct(x.vol, x.total))}%</td><td>${nf.format(x.big)}</td><td>${nf.format(x.sb)}</td><td>${x.subcas.size}</td></tr>`).join('')}</table></div>`;
 }
 
-/**
- * Render the SubCA/CPT analysis view with filters and rankings for all sites.
- */
 export function subca() {
   let h = '';
   for (const site of ['soldati', 'echeverria']) {

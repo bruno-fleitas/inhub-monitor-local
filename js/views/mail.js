@@ -1,16 +1,3 @@
-/**
- * @fileoverview Mail view: formatted email preview with copy-to-clipboard.
- *
- * View/adapter layer of the hexagonal architecture.
- * Builds a formatted email summarising the operational data for both sites,
- * with rich-text and plain-text copy support.
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js, core/config.js,
- *              core/time.js, domain/tms.js, domain/arrivals.js
- *
- * Exports: mail, mailHTML
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
@@ -19,10 +6,6 @@ import { hoursUntil, hoursToTarget } from '../core/time.js';
 import { huActiveUsers } from '../domain/tms.js';
 import { cut } from '../domain/arrivals.js';
 
-/**
- * Build the formatted HTML email body summarising operational data per site.
- * @returns {string} HTML string for the email body.
- */
 export function mailHTML() {
   let h = '<div class="mail-sheet"><p>Estimados,</p><p>Les comparto un breve resumen operativo de ambos sites:</p>';
   for (const site of ['soldati', 'echeverria']) {
@@ -47,17 +30,10 @@ export function mailHTML() {
   return h + '<p>Cualquier consulta quedo a disposición.<br>Saludos</p></div>';
 }
 
-/**
- * Render the mail view into the mailView container.
- */
 export function mail() {
   $('mailView').innerHTML = mailHTML();
 }
 
-/**
- * Bind copy-rich and copy-plain buttons to copy the email to clipboard.
- * Must be called after the DOM elements exist.
- */
 export function bindMailCopy() {
   $('copyRich').onclick = async () => {
     const html = mailHTML(), d = document.createElement('div'); d.innerHTML = html; const plain = d.innerText;

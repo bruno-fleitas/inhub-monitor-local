@@ -1,25 +1,3 @@
-/**
- * @fileoverview Application entry point and composition root.
- *
- * This is the only script loaded by index.html. It imports and wires together
- * all modules of the hexagonal architecture:
- *
- *   core/       — shared infrastructure (state, formatters, workers, config, time, dom)
- *   domain/     — pure business logic (tms, arrivals, jornales, storage)
- *   views/      — UI rendering functions (one per dashboard view)
- *   ui/         — UI infrastructure (navigation, file bindings, dynamic DOM injection)
- *   workers/    — Web Workers (unchanged, consumed via core/workers.js)
- *
- * Responsibilities:
- *   1. Inject dynamic UI elements and bind navigation/file inputs.
- *   2. Provide the global `renderAll()` function that re-renders all views.
- *   3. Bind the main "Procesar" button to orchestrate worker execution.
- *   4. Bind export/PPT/jornales/date buttons.
- *   5. Load master config and perform initial render.
- *
- * @module app
- */
-
 // ── Core ──
 import { state, dotExclusions } from './core/state.js';
 import { $ } from './core/dom.js';
@@ -49,10 +27,6 @@ import { injectUI } from './ui/injectUI.js';
 import { initNav } from './ui/nav.js';
 import { initFileBindings } from './ui/fileBindings.js';
 
-/**
- * Re-render all dashboard views. Called after processing, config changes,
- * and worker recomputation.
- */
 function renderAll() {
   summary();
   operation();

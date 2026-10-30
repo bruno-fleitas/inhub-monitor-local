@@ -1,17 +1,3 @@
-/**
- * @fileoverview Management report and PowerPoint export view.
- *
- * View/adapter layer of the hexagonal architecture.
- * Renders the executive management report with per-site KPIs, HU tables,
- * cutoff analysis, vehicle type breakdowns, and supports exporting to
- * PowerPoint via PptxGenJS (loaded from CDN on demand).
- *
- * Dependencies: core/dom.js, core/formatters.js, core/state.js, core/config.js,
- *              core/time.js, domain/tms.js, domain/arrivals.js
- *
- * Exports: reportPreview, exportPpt
- */
-
 import { $ } from '../core/dom.js';
 import { nf, pf, pct, esc } from '../core/formatters.js';
 import { state, names } from '../core/state.js';
@@ -20,11 +6,6 @@ import { hoursUntil, hoursToTarget } from '../core/time.js';
 import { huCptRows, huActiveUsers, huSeparateAir, huPct, dotData, dotTarget } from '../domain/tms.js';
 import { cut } from '../domain/arrivals.js';
 
-/**
- * Collect all report data for a single site.
- * @param {string} site - 'soldati' or 'echeverria'.
- * @returns {object|null} Aggregated report data or null if no data.
- */
 function reportSiteData(site) {
   const d = state.sites[site], t = d.tms, a = d.arrivals, q = d.jornalesResult, r = d.registros, lab = d.files.labelless ? (t?.labelless || d.labellessStandalone) : null, fc = Number($(site === 'soldati' ? 'fcS' : 'fcE')?.value) || 0;
   if (!t && !a && !q && !r && !lab) return null;
@@ -38,19 +19,10 @@ function reportSiteData(site) {
   return { site, name: names[site], fc, t, a, q, r, lab, pure, base, hu, speed: { target, real: r?.currentSpeed ?? null, required: req || null, last } };
 }
 
-/**
- * Collect report data for all sites.
- * @returns {Array<object>} Non-null site report data.
- */
 function reportData() {
   return ['soldati', 'echeverria'].map(reportSiteData).filter(Boolean);
 }
 
-/**
- * Generate alert messages for a site's report data.
- * @param {object} x - Site report data.
- * @returns {Array<string>} Alert strings.
- */
 function reportAlerts(x) {
   const out = [];
   if (x.t && x.fc) { const p = pct(x.t.totalConPost, x.fc); out.push('Inhub ' + pf.format(p) + '% del proyectado.'); }
@@ -67,9 +39,6 @@ function reportAlerts(x) {
   return out;
 }
 
-/**
- * Render the management report view with per-site sections.
- */
 export function reportPreview() {
   const data = reportData(), host = $('reportView'); if (!host) return;
   if (!data.length) { host.innerHTML = '<div class="empty">Procesá uno o más archivos para generar el reporte.</div>'; return; }
@@ -116,7 +85,6 @@ export function reportPreview() {
 
 let pptPromise = null;
 
-/** Load PptxGenJS from CDN (lazy, with fallback URLs). */
 function loadPptx() {
   if (window.PptxGenJS) return Promise.resolve();
   if (pptPromise) return pptPromise;
@@ -127,10 +95,6 @@ function loadPptx() {
   return pptPromise;
 }
 
-/**
- * Generate and download a PowerPoint report from the current data.
- * @returns {Promise<string>} The generated file name.
- */
 export async function exportPpt() {
   const data = reportData(); if (!data.length) throw new Error('No hay resultados procesados para exportar.');
   await loadPptx(); const p = new PptxGenJS(); p.layout = 'LAYOUT_WIDE'; p.author = 'OCASA'; p.company = 'OCASA'; p.subject = 'Resumen operativo Inhub'; p.title = 'Resumen de jornada Inhub';
@@ -155,10 +119,6 @@ export async function exportPpt() {
   await p.writeFile({ fileName: name }); return name;
 }
 
-/**
- * Run the PPT export with button state management.
- * @param {HTMLElement} btn - The button element.
- */
 export async function doPpt(btn) {
   const old = btn.textContent; btn.disabled = true; btn.textContent = 'Generando…';
   try { const name = await exportPpt(); $('message').textContent = 'PowerPoint generado: ' + name; }
@@ -166,9 +126,6 @@ export async function doPpt(btn) {
   finally { btn.disabled = false; btn.textContent = old; }
 }
 
-/**
- * Export a consolidated CSV of all site data.
- */
 export function exportCsv() {
   const rows = [];
   for (const site of ['soldati', 'echeverria']) {
