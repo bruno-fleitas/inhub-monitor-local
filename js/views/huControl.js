@@ -2,6 +2,7 @@ import { $ } from '../core/dom.js';
 import { nf, pf, pct, esc, huPercent2 } from '../core/formatters.js';
 import { state, names, dotExclusions } from '../core/state.js';
 import { huConfig } from '../core/config.js';
+import { hoursToTarget, fmtDuration } from '../core/time.js';
 import {
   huCptRows, huActiveUsers, huSeparateAir, huPct, huTone,
   huCptTracking, dotTarget, dotData, dotExport, dotVisibleRows

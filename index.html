@@ -7,7 +7,21 @@
   <link rel="stylesheet" href="./css/app.css?v=20261029-report-curves-1">
 </head>
 <body>
-  <aside class="sidebar">
+  <!-- LOGIN OVERLAY -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-brand">INHUB <span>LOCAL</span></div>
+      <h2>Iniciar sesi&oacute;n</h2>
+      <form id="loginForm">
+        <label>Usuario<input id="loginUser" type="text" autocomplete="username" required></label>
+        <label>Contrase&ntilde;a<input id="loginPass" type="password" autocomplete="current-password" required></label>
+        <button type="submit" id="loginSubmit" class="primary">Ingresar</button>
+      </form>
+      <p id="loginError" class="login-error"></p>
+    </div>
+  </div>
+
+  <aside class="sidebar" id="appSidebar" style="display:none">
     <div class="brand">INHUB <span>LOCAL</span></div>
     <nav>
       <button class="nav active" data-view="resumen">Resumen ejecutivo</button>
@@ -24,16 +38,21 @@
       <button class="nav" data-view="mail">Vista Mail</button>
       <button class="nav" data-view="reporte">Reporte gerencial</button>
       <button class="nav" data-view="config">Configuración</button>
+      <button class="nav" data-view="monitor">Monitor Evento</button>
     </nav>
   </aside>
 
-  <main class="main">
+  <main class="main" id="appMain" style="display:none">
     <header class="topbar">
       <div>
         <h1>Monitor Operativo Inhub</h1>
         <p>Procesamiento local · arquitectura de alto rendimiento</p>
       </div>
-      <span id="engineStatus" class="badge">Motor listo</span>
+      <div class="topbar-right">
+        <span id="userInfo" class="badge"></span>
+        <button id="logoutBtn" class="smallbtn danger" style="display:none">Salir</button>
+        <span id="engineStatus" class="badge">Motor listo</span>
+      </div>
     </header>
 
     <section id="view-resumen" class="view active">
@@ -95,6 +114,7 @@
     <section id="view-mail" class="view"><article class="card"><h2>Vista Mail</h2><div id="mailView" class="empty">El mail se generará desde los resultados ya procesados.</div></article></section>
     <section id="view-reporte" class="view"><article class="card"><h2>Reporte gerencial</h2><div id="reportView" class="empty">Procesá los archivos disponibles para generar el resumen de jornada.</div></article></section>
     <section id="view-config" class="view"><article class="card"><h2>Configuración</h2><div id="configView" class="empty">Configuración de SubCA, CPT y reglas operativas.</div></article></section>
+    <section id="view-monitor" class="view"><div id="monitorView" class="empty">Procesá archivos para ver el monitor.</div></section>
   </main>
 
   <script type="module" src="./js/app.js?v=20261029-report-curves-1"></script>

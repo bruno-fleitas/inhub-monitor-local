@@ -4,6 +4,7 @@ import { $ } from './core/dom.js';
 import { nf } from './core/formatters.js';
 import { initMasters } from './core/config.js';
 import { runT, runA, runR, runL, progress, status, jready } from './core/workers.js';
+import { getSession, login, logout, applyRoleFilter } from './core/auth.js';
 
 // ── Domain (re-export for views that need lazy injection) ──
 
@@ -21,6 +22,7 @@ import { dockDashboard } from './views/docks.js';
 import { planVsReal } from './views/planVsReal.js';
 import { huGoalView } from './views/huGoal.js';
 import { masterUI } from './views/config.js';
+import { monitorEvento } from './views/monitor.js';
 
 // ── UI ──
 import { injectUI } from './ui/injectUI.js';
@@ -40,6 +42,7 @@ function renderAll() {
   jornales();
   mail();
   reportPreview();
+  monitorEvento();
 }
 
 // Inject lazy renderAll and runT into views that need them (breaks circular deps)
@@ -97,6 +100,37 @@ $('processBtn').onclick = async () => {
 };
 
 // ── Boot ──
-await initMasters();
-masterUI();
-renderAll();
+
+// Mostrar app si ya hay sesion
+const existingSession = getSession();
+if (existingSession) showApp(existingSession);
+
+// Login form
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('loginSubmit');
+  const err = $('loginError');
+  err.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  try {
+    const user = await login($('loginUser').value, $('loginPass').value);
+    showApp(user);
+  } catch (ex) {
+    err.textContent = ex.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Ingresar';
+  }
+});
+
+function showApp(user) {
+  $('loginOverlay').classList.add('hidden');
+  $('appSidebar').style.display = '';
+  $('appMain').style.display = '';
+  $('userInfo').textContent = `${user.nombre} ${user.apellido} · ${user.rol}`;
+  $('logoutBtn').style.display = '';
+  $('logoutBtn').onclick = logout;
+  applyRoleFilter();
+  initMasters().then(() => { masterUI(); renderAll(); });
+}
