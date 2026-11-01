@@ -195,6 +195,9 @@ function openMonitor(d) {
 
   const huSHP = d.huAbierto + d.huCerrado;
 
+  // fc mutable: permite sobreescribir el proyectado desde el modal
+  let fcOverride = d.fc || 0;
+
   _modal = document.createElement('div');
   _modal.className = 'mon-overlay';
   _modal.innerHTML = `
@@ -202,24 +205,36 @@ function openMonitor(d) {
 
     <!-- HEADER -->
     <div class="mon-hdr">
-      <div class="mon-hdr-brand">OCASA<span class="mon-hdr-arrow">↗</span></div>
+      <div class="mon-hdr-brand">
+        <img src="./ocasa-logo-png_seeklogo-391508-removebg-preview.png" alt="OCASA" class="mon-hdr-logo">
+      </div>
       <div class="mon-hdr-clock">${clock}</div>
       <div class="mon-hdr-title">Monitor de Evento</div>
-      <button class="mon-x" title="Cerrar">✕</button>
+      <button class="mon-x" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
 
     <!-- KPI STRIP -->
     <div class="mon-kpis">
-      <div class="mon-kpi">
+      <div class="mon-kpi mon-kpi-fc">
         <div class="mon-kpi-icon">${ICONS.proyectado}</div>
-        <div class="mon-kpi-lbl">Proyectado</div>
-        <div class="mon-kpi-val">${d.fc ? nf.format(d.fc) : '—'}</div>
+        <div class="mon-kpi-lbl">
+          Proyectado
+          <button class="mon-fc-edit-btn" title="Modificar proyectado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        </div>
+        <div class="mon-kpi-val mon-fc-display">${fcOverride ? nf.format(fcOverride) : '—'}</div>
+        <div class="mon-fc-edit-wrap mon-fc-hidden">
+          <input class="mon-fc-input" type="number" min="0" step="1" placeholder="Nuevo proyectado" value="${fcOverride || ''}">
+          <div class="mon-fc-actions">
+            <button class="mon-fc-confirm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg> Aplicar</button>
+            <button class="mon-fc-cancel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+        </div>
       </div>
       <div class="mon-kpi">
         <div class="mon-kpi-icon">${ICONS.descarga}</div>
         <div class="mon-kpi-lbl">Total descargado CPT</div>
         <div class="mon-kpi-val">${nf.format(d.totalConPost)}</div>
-        ${d.fc ? `<div class="mon-kpi-sub">${pf.format(pct(d.totalConPost,d.fc))}% del proy.</div>` : ''}
+        <div class="mon-kpi-sub mon-fc-pct">${fcOverride ? `${pf.format(pct(d.totalConPost, fcOverride))}% del proy.` : ''}</div>
       </div>
       <div class="mon-kpi mon-kpi-accent">
         <div class="mon-kpi-icon">${ICONS.voluminoso}</div>
@@ -290,6 +305,63 @@ function openMonitor(d) {
 
   document.body.appendChild(_modal);
 
+  // ── Lógica edición del proyectado ──
+  const fcDisplay  = _modal.querySelector('.mon-fc-display');
+  const fcPct      = _modal.querySelector('.mon-fc-pct');
+  const fcEditWrap = _modal.querySelector('.mon-fc-edit-wrap');
+  const fcInput    = _modal.querySelector('.mon-fc-input');
+  const fcEditBtn  = _modal.querySelector('.mon-fc-edit-btn');
+  const fcConfirm  = _modal.querySelector('.mon-fc-confirm');
+  const fcCancel   = _modal.querySelector('.mon-fc-cancel');
+
+  function openFcEdit() {
+    fcDisplay.classList.add('mon-fc-hidden');
+    fcEditWrap.classList.remove('mon-fc-hidden');
+    fcInput.focus();
+    fcInput.select();
+  }
+
+  function closeFcEdit() {
+    fcEditWrap.classList.add('mon-fc-hidden');
+    fcDisplay.classList.remove('mon-fc-hidden');
+  }
+
+  function applyFc() {
+    const val = parseInt(fcInput.value, 10);
+    if (!isNaN(val) && val > 0) {
+      fcOverride = val;
+      // Sincronizar con los inputs principales para que el resto del dashboard sea consistente
+      // Distribuimos el total proporcionalmente si había fc previo por site, o 50/50 si no
+      const prevFcS = Number(document.getElementById('fcS')?.value) || 0;
+      const prevFcE = Number(document.getElementById('fcE')?.value) || 0;
+      const prevTotal = prevFcS + prevFcE;
+      if (prevTotal > 0) {
+        const ratioS = prevFcS / prevTotal;
+        const elS = document.getElementById('fcS');
+        const elE = document.getElementById('fcE');
+        if (elS) elS.value = Math.round(val * ratioS);
+        if (elE) elE.value = val - Math.round(val * ratioS);
+      } else {
+        // Si no había proyectado previo, ponemos todo en soldati
+        const elS = document.getElementById('fcS');
+        if (elS) elS.value = val;
+      }
+      // Actualizar display
+      fcDisplay.textContent = nf.format(fcOverride);
+      fcPct.textContent = `${pf.format(pct(d.totalConPost, fcOverride))}% del proy.`;
+    }
+    closeFcEdit();
+  }
+
+  fcEditBtn.onclick = openFcEdit;
+  fcConfirm.onclick = applyFc;
+  fcCancel.onclick  = closeFcEdit;
+  fcInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') applyFc();
+    if (e.key === 'Escape') closeFcEdit();
+  });
+
+  // ── Cierre del modal ──
   const close = () => { _modal?.remove(); _modal = null; };
   _modal.querySelector('.mon-x').onclick = close;
   _modal.addEventListener('click', e => { if (e.target === _modal) close(); });
