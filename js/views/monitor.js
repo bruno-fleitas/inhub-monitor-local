@@ -211,7 +211,10 @@ function openMonitor(d) {
       <div class="mon-hdr-brand">
         <img src="./ocasa.png" alt="OCASA" class="mon-hdr-logo">
       </div>
-      <div class="mon-hdr-clock">${clock}</div>
+      <div class="mon-hdr-center">
+        <div class="mon-hdr-clock">${clock}</div>
+        <div class="mon-hdr-update">🕐 Última actualización · ${clock}</div>
+      </div>
       <div class="mon-hdr-right">
         <img src="./cymonday.png" alt="Cyber Monday" class="mon-hdr-logo-right">
         <button class="mon-x" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -262,6 +265,12 @@ function openMonitor(d) {
         <div class="mon-kpi-val">${d.spr !== null ? nf.format(d.spr) : '—'}</div>
         ${d.veh.total ? `<div class="mon-kpi-sub">${nf.format(d.veh.total)} vehículos</div>` : ''}
       </div>
+    </div>
+
+    <!-- ULTIMA ACTUALIZACION -->
+    <div class="mon-update-bar">
+      <span class="mon-update-dot"></span>
+      Última actualización · <strong>${clock}</strong>
     </div>
 
     <!-- BODY: grilla 2x2 exacta igual al original -->
