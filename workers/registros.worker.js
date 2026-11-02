@@ -45,7 +45,7 @@ async function analyze(file,day){
   if(!rows.length)return{ok:true,records:0,packages:0,byHour:Array(24).fill(0),lastTs:null,currentSpeed:0,sheet:src.sheet};
   const sample=rows.find(r=>Object.values(r).some(v=>v!==''))||rows[0];
   const kChofer=key(sample,['CHOFER']),kTipo=key(sample,['TIPO DE OPERACION']),kAcc=key(sample,['Accion']),kFecha=key(sample,['Fecha y hora']),kPaq=key(sample,['CANT PAQUETES']);
-  if(!kTipo||!kAcc||!kFecha)throw new Error('Registros: faltan columnas requeridas.');
+  if(!kTipo||!kAcc||!kFecha||!kPaq)throw new Error('Registros: faltan columnas requeridas (incluida CANT PAQUETES).');
   const byHour=Array(24).fill(0),vehiclesByHour=Array.from({length:24},()=>({veh:0,camioneta:0,chasis:0,semi:0}));const packagesByTypeHour={chasis:Array(24).fill(0),camioneta:Array(24).fill(0),semi:Array(24).fill(0),otro:Array(24).fill(0)};const vehicleIds=new Set(),vehicleTypes={camioneta:{veh:0,packages:0},chasis:{veh:0,packages:0},semi:{veh:0,packages:0},otro:{veh:0,packages:0}};const kId=key(sample,['ID Registro']),kVehicle=key(sample,['TIPO DE VEHICULO']);let records=0,packages=0,lastTs=null,currentHourPackages=0;
   for(const r of rows){
     const chofer=kChofer?String(r[kChofer]??'').trim():'';
@@ -55,7 +55,11 @@ async function analyze(file,day){
     if(norm(tipo)==='carga')continue;
     if(norm(tipo)!=='descarga'||norm(acc)!=='add')continue;
     const p=parts(r[kFecha]);if(!p||!sameDay(p,day)||p.h===1||p.h===2)continue;
-    const q=kPaq?num(r[kPaq]):0;
+    // Excluir registros sin CANT PAQUETES de TODAS las métricas, incluidos vehículos.
+    // El valor numérico 0 es válido; vacío, espacios y celdas nulas no lo son.
+    const rawPackages=r[kPaq];
+    if(rawPackages==null||String(rawPackages).trim()==='')continue;
+    const q=num(rawPackages);
     records++;packages+=q;byHour[p.h]+=q;
     const id=kId?String(r[kId]??'').trim():'';
     const uniqueKey=id||('fila-'+records);
