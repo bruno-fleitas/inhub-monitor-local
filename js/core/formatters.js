@@ -1,6 +1,6 @@
 export const nf = new Intl.NumberFormat('es-AR');
 
-export const pf = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+export const pf = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const pct = (a, b) => b ? a / b * 100 : 0;
 

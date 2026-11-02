@@ -37,6 +37,7 @@ function bindCurveRanges() {
 
 function operationalHourMatrix(site) {
   const d = state.sites[site], ed = d.registros?.byHour || null, tms = d.tms?.by || null, arr = d.arrivals?.h || d.registros?.vehiclesByHour || null;
+  const fc = Number($(site === 'soldati' ? 'fcS' : 'fcE')?.value) || 0;
   if (!ed && !tms && !arr) return '';
   const hours = curveHourRange(site).hours;
   const values = { ed: [], tms: [], acum: [], share: [], spr: [], vehicles: [] };
@@ -52,12 +53,12 @@ function operationalHourMatrix(site) {
   let cumulativeED = 0;
   for (const e of values.ed) { if (e !== null) cumulativeED += e; values.share.push(e === null ? null : cumulativeED); }
   const fmt = x => x === null ? '—' : nf.format(Math.round(x));
-  const pctFmt = x => x === null ? '—' : x.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
+  const pctFmt = x => x === null ? '—' : x.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
   const definitions = [
     ['ED · descargado', 'ed', fmt, totalED, !!ed],
     ['TMS · Inhub', 'tms', fmt, totalTMS, !!tms],
     ['ACUM · TMS', 'acum', fmt, totalTMS, !!tms],
-    ['% ED acumulado', 'share', x => pctFmt(totalED ? x / totalTMS * 100 : null), totalED ? 100 : null, !!ed]
+    ['% ED acumulado', 'share', x => pctFmt((totalED && fc) ? x / fc * 100 : null), totalED ? 100 : null, !!ed]
   ];
   return '<section class="hour-matrix"><h3>Control horario · ED / TMS</h3><p class="muted">ACUM · TMS y % ED son acumulados continuos desde la hora inicial configurada. El SPR se presenta en el cuadro de vehículos.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>' + hours.map(h => '<th>' + String(h).padStart(2, '0') + ':00</th>').join('') + '<th>TOTAL</th></tr></thead><tbody>' + definitions.map(([label, key, format, total, available]) => '<tr><th>' + label + '</th>' + hours.map((h, i) => '<td>' + (available ? format(values[key][i]) : '—') + '</td>').join('') + '<td class="matrix-total">' + (available ? (key === 'share' ? pctFmt(total) : key === 'spr' ? total === null ? '—' : total.toLocaleString('es-AR', { maximumFractionDigits: 1 }) : fmt(total)) : '—') + '</td></tr>').join('') + '</tbody></table></div></section>';
 }

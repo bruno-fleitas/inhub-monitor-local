@@ -15,7 +15,7 @@ function aggregate() {
   let fc = 0;
   const cptMap = new Map();   // CPT normales (no MELI Air)
   const veh = { chasis: 0, camioneta: 0, semi: 0, total: 0 };
-  const pkgByHour = Array(24).fill(0);
+  const pkgByHour = Array(24).fill(0);  // ED (registros.byHour)
   let lastTs = null;
   const start = state.config.curveStart || 9;
 
@@ -56,8 +56,11 @@ function aggregate() {
         g.cerrado    += row.cerrado;    g.pendiente += row.pendiente;
       }
 
-      if (t.by) t.by.forEach((h, i) => { pkgByHour[i] += h.tot || 0; });
+      // (no se acumula t.by TMS en pkgByHour — se usa ED de registros)
     }
+
+    // ED (registros): fuente para los cortes Pre — igual que % ED acumulado en Curvas
+    if (r?.byHour) r.byHour.forEach((v, h) => { pkgByHour[h] += Number(v || 0); });
 
     const src = r?.vehiclesByHour || a?.h || null;
     if (src) for (let h = 0; h < 24; h++) {
@@ -113,12 +116,12 @@ function bars(veh) {
 
 /*--------- TABLA CORTES ---------*/
 
-function cutRows(pkgByHour, start) {
-  const total = pkgByHour.slice(start).reduce((s, v) => s + v, 0) || 1;
+function cutRows(pkgByHour, start, totalConPost, fc) {
   const cum = h => pkgByHour.slice(start, h).reduce((s, v) => s + v, 0);
+  const base = fc || totalConPost || 1;
   return [14, 16, 18, 20].map(h => {
     const n = cum(h);
-    return `<tr><td>Pre ${h}</td><td>${nf.format(n)}</td><td>${pf.format(pct(n, total))} %</td></tr>`;
+    return `<tr><td>Pre ${h}</td><td>${nf.format(n)}</td><td>${pf.format(pct(n, base))} %</td></tr>`;
   }).join('');
 }
 
@@ -283,7 +286,7 @@ function openMonitor(d) {
       <div class="mon-card mon-card-table">
         <table class="mon-tbl">
           <thead><tr><th>Corte</th><th>Paquetes Pre</th><th>% Paquetes Pre</th></tr></thead>
-          <tbody>${cutRows(d.pkgByHour, d.start)}</tbody>
+          <tbody>${cutRows(d.pkgByHour, d.start, d.totalConPost, d.fc)}</tbody>
         </table>
       </div>
 
