@@ -81,7 +81,7 @@ function aggregate() {
     meliAvance: meliEtiquetado ? pct(meliAbierto + meliCerrado, meliEtiquetado) : 0,
     cptRows: [...cptMap.values()].sort((a, b) => String(a.cpt).localeCompare(String(b.cpt), 'es', { numeric: true })),
     veh, pkgByHour, lastTs, start,
-    spr: veh.total > 0 ? Math.round(totalConPost / veh.total) : null
+    spr: veh.total > 0 ? Math.round(pkgByHour.reduce((s, v) => s + v, 0) / veh.total) : null
   };
 }
 
@@ -209,11 +209,13 @@ function openMonitor(d) {
     <!-- HEADER -->
     <div class="mon-hdr">
       <div class="mon-hdr-brand">
-        <img src="./ocasa-logo-png_seeklogo-391508-removebg-preview.png" alt="OCASA" class="mon-hdr-logo">
+        <img src="./ocasa.png" alt="OCASA" class="mon-hdr-logo">
       </div>
       <div class="mon-hdr-clock">${clock}</div>
-      <div class="mon-hdr-title">Monitor de Evento</div>
-      <button class="mon-x" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      <div class="mon-hdr-right">
+        <img src="./cymonday.png" alt="Cyber Monday" class="mon-hdr-logo-right">
+        <button class="mon-x" title="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
     </div>
 
     <!-- KPI STRIP -->
@@ -256,7 +258,7 @@ function openMonitor(d) {
       </div>
       <div class="mon-kpi">
         <div class="mon-kpi-icon">${ICONS.spr}</div>
-        <div class="mon-kpi-lbl">Prom. paq / vehículo</div>
+        <div class="mon-kpi-lbl">Paquetes por vehículos promedio</div>
         <div class="mon-kpi-val">${d.spr !== null ? nf.format(d.spr) : '—'}</div>
         ${d.veh.total ? `<div class="mon-kpi-sub">${nf.format(d.veh.total)} vehículos</div>` : ''}
       </div>
