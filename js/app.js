@@ -13,7 +13,7 @@ import { summary } from './views/summary.js';
 import { operation } from './views/operation.js';
 import { huControl, setRenderAll as setHuRenderAll, setRunT } from './views/huControl.js';
 import { curves } from './views/curves.js';
-import { mix } from './views/mix.js';
+import { mix } from './views/mix.js?v=20261110-mix-1';
 import { subca } from './views/subca.js';
 import { jornales, runJ, setRenderAll as setJorRenderAll } from './views/jornales.js';
 import { mail, bindMailCopy } from './views/mail.js';
