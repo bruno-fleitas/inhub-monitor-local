@@ -28,15 +28,47 @@ export function vehiclePie(a) {
 }
 
 export function mix() {
-  const start = state.config.curveStart;
-  let h = '';
+  const container = $('mixView');
+  const starts = state.config.mixStart ??= { soldati: 9, echeverria: 9 };
+  let html = '';
   for (const site of ['soldati', 'echeverria']) {
     const t = state.sites[site].tms;
-    if (!t) continue;
-    const pure = Math.max(0, t.vol - t.big - t.sb), base = Math.max(0, t.totalConPost - t.big - t.sb);
-    let cv = 0, ct = 0, rows = '';
-    for (let hr = start; hr <= 23; hr++) { const x = t.by[hr]; cv += x.vol; ct += x.tot; rows += `<tr><td>${hr}:00</td><td>${nf.format(x.tot)}</td><td>${nf.format(x.vol)}</td><td>${pf.format(pct(x.vol, x.tot))}%</td><td>${pf.format(pct(cv, ct))}%</td><td>${nf.format(x.big)}</td><td>${nf.format(x.sb)}</td></tr>`; }
-    h += `<article class="card"><h2>${names[site]}</h2><div class="kpi-grid"><div class="kpi"><span>Voluminoso c/B+SB</span><b>${nf.format(t.vol)}</b><small>${pf.format(pct(t.vol, t.totalConPost))}%</small></div><div class="kpi"><span>Voluminoso s/B+SB</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure, base))}%</small></div><div class="kpi"><span>Bigger</span><b>${nf.format(t.big)}</b></div><div class="kpi"><span>SuperBigger</span><b>${nf.format(t.sb)}</b></div></div>${packagePie(t)}<div class="scroll"><table><tr><th>Hora</th><th>Total</th><th>Vol.</th><th>% hora</th><th>% acum.</th><th>Bigger</th><th>SB</th></tr>${rows}</table></div></article>`;
+    if (!t?.by) continue;
+    const saved = Number(starts[site]);
+    const start = Number.isInteger(saved) && saved >= 0 && saved <= 23 ? saved : 9;
+    const by = t.by;
+    const total = { tot: 0, vol: 0, big: 0, sb: 0 };
+    let rows = '';
+    let cumulative = { tot: 0, vol: 0, big: 0, sb: 0 };
+    for (let hr = start; hr < 24; hr++) {
+      const x = by[hr] || {};
+      const n = { tot: Number(x.tot) || 0, vol: Number(x.vol) || 0, big: Number(x.big) || 0, sb: Number(x.sb) || 0 };
+      for (const key of Object.keys(total)) { total[key] += n[key]; cumulative[key] += n[key]; }
+      const pureHour = Math.max(0, n.vol - n.big - n.sb);
+      rows += `<tr><td>${String(hr).padStart(2, '0')}:00</td><td>${nf.format(n.tot)}</td><td>${nf.format(pureHour)}</td><td>${pf.format(pct(pureHour, n.tot))}%</td><td>${pf.format(pct(Math.max(0, cumulative.vol - cumulative.big - cumulative.sb), cumulative.tot))}%</td><td>${nf.format(n.big)}</td><td>${nf.format(n.sb)}</td></tr>`;
+    }
+    const pure = Math.max(0, total.vol - total.big - total.sb);
+    const packages = Math.max(0, total.tot - total.vol);
+    const opts = Array.from({ length: 24 }, (_, h) => `<option value="${h}"${h === start ? ' selected' : ''}>${String(h).padStart(2, '0')}:00</option>`).join('');
+    html += `<article class="card"><h2>${names[site]}</h2>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0 14px">
+        <label>Tomar ingresos desde <select data-mix-start="${site}">${opts}</select></label>
+        <span class="muted">Hasta 23:59 · Base: ${nf.format(total.tot)} paquetes TMS</span>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><span>Voluminoso con Bigger + SuperBigger</span><b>${nf.format(total.vol)}</b><small>${pf.format(pct(total.vol, total.tot))}% del total</small></div>
+        <div class="kpi"><span>Voluminoso sin Bigger / SuperBigger</span><b>${nf.format(pure)}</b><small>${pf.format(pct(pure, total.tot))}% del total</small></div>
+        <div class="kpi"><span>Bigger</span><b>${nf.format(total.big)}</b><small>${pf.format(pct(total.big, total.tot))}% del total</small></div>
+        <div class="kpi"><span>SuperBigger</span><b>${nf.format(total.sb)}</b><small>${pf.format(pct(total.sb, total.tot))}% del total</small></div>
+      </div>
+      ${pieCard('Mix de paquetes · desde ' + String(start).padStart(2, '0') + ':00', [['Paquetería', packages], ['Voluminoso', pure], ['Bigger', total.big], ['SuperBigger', total.sb]])}
+      <div class="scroll"><table><tr><th>Hora</th><th>Total</th><th>Vol. sin B/SB</th><th>% hora</th><th>% acum.</th><th>Bigger</th><th>SB</th></tr>${rows}</table></div>
+      <p class="muted">Los porcentajes usan siempre como denominador el total de paquetes del período. Las cuatro categorías del gráfico son excluyentes. La categoría «Voluminoso con B/SB» es un subtotal informativo y no se suma nuevamente al Mix.</p>
+    </article>`;
   }
-  $('mixView').innerHTML = h || '<article class="card empty">Sin TMS.</article>';
+  container.innerHTML = html || '<article class="card empty">Sin TMS.</article>';
+  container.querySelectorAll('[data-mix-start]').forEach(select => select.addEventListener('change', () => {
+    starts[select.dataset.mixStart] = Number(select.value);
+    mix();
+  }));
 }
