@@ -7,7 +7,7 @@ import {
   huCptRows, huActiveUsers, huSeparateAir, huPct, huTone,
   huCptTracking, dotTarget, dotData, dotExport, dotVisibleRows
 } from '../domain/tms.js';
-import { huInhubMini } from './operation.js';
+import { huInhubMini } from './operation.js?v=20261112-hu-speed-gap-1';
 
 /*--------- MODAL DE USUARIOS ---------*/
 
