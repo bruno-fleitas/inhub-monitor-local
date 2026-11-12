@@ -16,6 +16,15 @@ const ts=p=>p&&p.y!=null?new Date(p.y,p.m-1,p.d,p.h||0,p.min||0,p.sec||0,0).getT
 function sameDay(p,day){if(!p||p.y==null)return false;if(!day)return true;const[y,m,d]=day.split('-').map(Number);return p.y===y&&p.m===m&&p.d===d}
 function classify(w,h,l,wi){w=num(w);h=num(h);l=num(l);wi=num(wi);/* Ambos formatos TMS: peso en gramos y dimensiones en centimetros. */const kg=w/1000;if(h>200||l>200||wi>200||kg>50)return'SuperBigger';if(h>150||l>150||wi>150||kg>30)return'Bigger';if(h>=50||l>=50||wi>=50||kg>=20)return'Voluminoso';return'Paqueteria'}
 function line(line,delim){const out=[];let f='',q=false;for(let i=0;i<line.length;i++){const c=line[i];if(q){if(c==='"'&&line[i+1]==='"'){f+='"';i++}else if(c==='"')q=false;else f+=c}else{if(c==='"')q=true;else if(c===delim){out.push(f);f=''}else f+=c}}out.push(f);return out}
+function dataLine(raw,d,expected){
+ const fields=line(raw,d);
+ if(fields.length===expected)return fields;
+ if(fields.length===1&&expected>1&&raw.startsWith('"')&&raw.endsWith('"')){
+  const inner=line(fields[0],d);
+  if(inner.length===expected)return inner;
+ }
+ throw new Error('TMS: fila con '+fields.length+' columnas; se esperaban '+expected+'. Revisar formato CSV.');
+}
 const delim=s=>(s.split(';').length>s.split(',').length?';':',');
 function idx(h,names){const m=new Map(h.map((x,i)=>[norm(x),i]));for(const n of names){const i=m.get(norm(n));if(i!==undefined)return i}return-1}
 const val=(r,i)=>{const v=i>=0?(r[i]??''):'';return typeof v==='string'&&/^\s*null\s*$/i.test(v)?'':v};
@@ -51,13 +60,13 @@ async function process(file,labFile,cfg){
   totalRows++;const pin=parts(val(r,indexes.inDate)),pout=parts(val(r,indexes.outDate)),cl=classify(val(r,indexes.weight),val(r,indexes.height),val(r,indexes.length),val(r,indexes.width)),zone=String(val(r,indexes.zone)).trim(),sid=String(val(r,indexes.ship)).trim(),hasHU=String(val(r,indexes.outId)).trim()&&String(val(r,indexes.outDate)).trim()&&pout;
   if(sameDay(pin,cfg.selectedDate)){const it=ts(pin);if(it!=null&&(maxInTs==null||it>maxInTs))maxInTs=it;totalConPost++;const dock=String(val(r,indexes.dock)).trim();if(dock&&it!=null){let x=docks.get(dock);if(!x){x={dock,count:0,first:it,last:it};docks.set(dock,x)}x.count++;x.first=Math.min(x.first,it);x.last=Math.max(x.last,it);const username=String(val(r,indexes.inUser)).trim();if(username){x.users??={};x.users[username]=(x.users[username]||0)+1}}if(pin.h!=null&&pin.h>=cpt)totalSinPost++;if(cl!=='Paqueteria')vol++;if(cl==='Bigger')big++;if(cl==='SuperBigger')sb++;addSub(zone,cl);if(pin.h!=null&&pin.h>=0&&pin.h<=23){const b=by[pin.h];b.tot++;if(cl!=='Paqueteria')b.vol++;if(cl==='Bigger')b.big++;if(cl==='SuperBigger')b.sb++}}
   if(/_a$/i.test(zone)){if(zone)zones[zone]=(zones[zone]||0)+1;if(sameDay(pin,cfg.selectedDate)){meliArrivals++;if(pin.h!=null&&pin.h>=0&&pin.h<=23)by[pin.h].meliArr++}if(hasHU&&sameDay(pout,cfg.selectedDate)){meliProcessed++;if(pout.h!=null&&pout.h>=0&&pout.h<=23)by[pout.h].meliProc++}}
-  if(sid&&pin.y!=null){const dp=parts(val(r,indexes.dispatchDate));dotRows.push({shipment:sid,hu:String(val(r,indexes.outId)).trim(),subca:zone,status:String(val(r,indexes.status)).trim(),inTs:ts(pin),dispatchTs:ts(dp)})}
+  if(sid&&pin?.y!=null){const dp=parts(val(r,indexes.dispatchDate));dotRows.push({shipment:sid,hu:String(val(r,indexes.outId)).trim(),subca:zone,status:String(val(r,indexes.status)).trim(),inTs:ts(pin),dispatchTs:ts(dp)})}
   const status=statusOf(val(r,indexes.status)),outUser=String(val(r,indexes.outUser)).trim();
   if(sameDay(pin,cfg.selectedDate)&&pin.h!=null&&pin.h>=huStart&&beforeCut(pin))addHu(zone,status,outUser,beforeCut(pout)?pout:null);
   if(sid&&labs.has(sid)){found.add(sid);if(sameDay(pin,cfg.selectedDate)){arrived.add(sid);if(pin.h!=null&&pin.h>=0&&pin.h<=23)by[pin.h].labArr++}if(hasHU&&sameDay(pout,cfg.selectedDate)){processed.add(sid);if(pout.h!=null&&pout.h>=0&&pout.h<=23)by[pout.h].labProc++}}
  }
- while(offset<size){const end=Math.min(size,offset+chunk),buf=await file.slice(offset,end).arrayBuffer();let text=TEXT_DECODER.decode(buf,{stream:end<size});offset=end;text=rest+text;const ls=text.split(/\n/);rest=ls.pop()??'';for(let raw of ls){raw=raw.replace(/\r$/,'');if(!headers){d=delim(raw);headers=line(raw,d).map(x=>x.replace(/^\uFEFF/,'').trim());setup(headers);continue}if(raw.trim())row(line(raw,d))}self.postMessage({type:'PROGRESS',progress:Math.min(99,Math.round(offset/size*100))})}
- if(rest.trim()&&headers)row(line(rest.replace(/\r$/,''),d));
+ while(offset<size){const end=Math.min(size,offset+chunk),buf=await file.slice(offset,end).arrayBuffer();let text=TEXT_DECODER.decode(buf,{stream:end<size});offset=end;text=rest+text;const ls=text.split(/\n/);rest=ls.pop()??'';for(let raw of ls){raw=raw.replace(/\r$/,'');if(!headers){d=delim(raw);headers=line(raw,d).map(x=>x.replace(/^\uFEFF/,'').trim());setup(headers);continue}if(raw.trim())row(dataLine(raw,d,headers.length))}self.postMessage({type:'PROGRESS',progress:Math.min(99,Math.round(offset/size*100))})}
+ if(rest.trim()&&headers)row(dataLine(rest.replace(/\r$/,''),d,headers.length));
  const huSubca=[...huSub.values()].map(g=>({...g,pendiente:Math.max(0,g.etiquetado-g.abierto-g.cerrado)}));
  const huTotals=huSubca.reduce((a,g)=>({etiquetado:a.etiquetado+g.etiquetado,abierto:a.abierto+g.abierto,cerrado:a.cerrado+g.cerrado,pendiente:a.pendiente+g.pendiente}),{etiquetado:0,abierto:0,cerrado:0,pendiente:0});
  const activity=[...userAct.values()];const active=maxOutTs==null?[]:activity.filter(x=>maxOutTs-x.last<600000);
