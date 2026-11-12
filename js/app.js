@@ -3,7 +3,7 @@ import { state, dotExclusions } from './core/state.js';
 import { $ } from './core/dom.js';
 import { nf } from './core/formatters.js';
 import { initMasters } from './core/config.js';
-import { runT, runA, runR, runL, progress, status, jready } from './core/workers.js';
+import { runT, runA, runR, runL, progress, status, jready } from './core/workers.js?v=20261111-tms-1';
 import { getSession, login, logout, applyRoleFilter } from './core/auth.js';
 
 // ── Domain (re-export for views that need lazy injection) ──
