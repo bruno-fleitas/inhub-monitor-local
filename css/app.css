@@ -658,3 +658,24 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .hu-dashboard .hu-summary tr:not(.hu-summary-update) td{font-size:16px!important;font-weight:800;line-height:1.12!important;padding:3px 7px!important}
 .hu-dashboard .hu-summary tr:not(.hu-summary-update) td:last-child{font-size:19px!important;font-weight:900;font-variant-numeric:tabular-nums}
 .hu-dashboard .hu-big{font-size:32px!important;font-weight:900}
+
+/* Mix: legibilidad de captura, sin afectar gráficos de otras vistas */
+#mixView .kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+#mixView .kpi{padding:8px 6px;text-align:center}
+#mixView .kpi span{font-size:14px!important;font-weight:700;color:#173454}
+#mixView .kpi b{font-size:27px!important;font-weight:850;color:#173454;margin:3px 0}
+#mixView .kpi small{font-size:16px!important;font-weight:800;color:#173454}
+#mixView .pie-card{padding:8px 12px;margin:8px 0}
+#mixView .pie-card h3{font-size:18px;margin-bottom:6px}
+#mixView .pie-ring{width:160px;height:160px}
+#mixView .pie-ring>div{width:104px;height:104px}
+#mixView .pie-ring strong{font-size:24px}
+#mixView .pie-legend{max-width:560px}
+#mixView .pie-legend>div{font-size:16px;grid-template-columns:12px minmax(100px,1fr) minmax(75px,auto) 85px;padding:5px 4px}
+#mixView .scroll{max-height:none;overflow-x:auto}
+#mixView .scroll table{width:100%;table-layout:fixed;min-width:650px}
+#mixView .scroll table th,#mixView .scroll table td{font-size:16px!important;font-weight:800;text-align:center;padding:4px 5px!important;line-height:1.15;white-space:nowrap;font-variant-numeric:tabular-nums}
+#mixView .scroll table th{font-size:14px!important;color:#173454}
+#mixView .scroll table th:nth-child(3){width:20%}
+#mixView .scroll table td:nth-child(5){color:#12684d}
+@media(max-width:800px){#mixView .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
