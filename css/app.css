@@ -652,3 +652,9 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .hu-dashboard .hu-air-compact .hu-table td,.hu-dashboard .hu-left>.hu-air-panel .hu-table td{font-size:14px!important;font-weight:800;line-height:1.12!important;padding:3px 4px!important}
 .hu-dashboard .hu-air-compact .hu-table th,.hu-dashboard .hu-left>.hu-air-panel .hu-table th{font-size:12px!important;font-weight:800;line-height:1.12!important;padding:4px 3px!important}
 .hu-dashboard .hu-air-compact .pill,.hu-dashboard .hu-air-compact .badge{font-size:13px!important}
+
+/* HU: destacar porcentajes reales (hu-pill) y cantidades del resumen */
+.hu-dashboard .hu-cpt-full .hu-table .hu-pill,.hu-dashboard .hu-air-compact .hu-table .hu-pill,.hu-dashboard .hu-left>.hu-air-panel .hu-table .hu-pill{font-size:15px!important;font-weight:900;line-height:1.1!important;padding:2px 5px!important;min-width:72px;font-variant-numeric:tabular-nums}
+.hu-dashboard .hu-summary tr:not(.hu-summary-update) td{font-size:16px!important;font-weight:800;line-height:1.12!important;padding:3px 7px!important}
+.hu-dashboard .hu-summary tr:not(.hu-summary-update) td:last-child{font-size:19px!important;font-weight:900;font-variant-numeric:tabular-nums}
+.hu-dashboard .hu-big{font-size:32px!important;font-weight:900}
