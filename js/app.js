@@ -10,8 +10,8 @@ import { getSession, login, logout, applyRoleFilter } from './core/auth.js';
 
 // ── Views ──
 import { summary } from './views/summary.js';
-import { operation } from './views/operation.js';
-import { huControl, setRenderAll as setHuRenderAll, setRunT } from './views/huControl.js';
+import { operation } from './views/operation.js?v=20261112-hu-speed-gap-1';
+import { huControl, setRenderAll as setHuRenderAll, setRunT } from './views/huControl.js?v=20261112-hu-speed-gap-1';
 import { curves } from './views/curves.js';
 import { mix } from './views/mix.js?v=20261112-mix-width-3';
 import { subca } from './views/subca.js';
