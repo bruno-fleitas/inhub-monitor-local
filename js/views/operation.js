@@ -44,10 +44,12 @@ export function huInhubMini(site) {
   const bipeado = t ? (t.by?.length ? t.by.reduce((sum, h, i) => sum + (i >= startHour ? Number(h.tot || 0) : 0), 0) : t.totalConPost) : null;
   const last = t?.maxInTs || r?.lastTs || null;
   const clock = last ? new Date(last).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '—';
-  const target = state.config.speedTargetTime?.[site] || '22:00';
+  const target = huConfig(site).targetTime || '22:00';
   const remaining = hoursUntil(last, target);
   const hourly = fc && bipeado !== null && remaining > 0 ? Math.max(0, fc - bipeado) / remaining : null;
   const velocity = tmsHourlyVelocity(t);
+  const gap = Number.isFinite(velocity) && Number.isFinite(hourly) ? Math.round(velocity) - Math.round(hourly) : null;
+  const gapText = gap === null ? '—' : '<b style="color:' + (gap > 0 ? '#4ade80' : gap < 0 ? '#ff7474' : '#e0edff') + '">' + (gap > 0 ? '+' : '') + nf.format(gap) + '</b>';
   const val = n => n === null ? '—' : nf.format(Math.round(n));
   const percentage = n => fc && n !== null ? pf.format(pct(n, fc)) + '%' : '—';
   const row = (name, n, p) => '<tr><td>' + name + '</td><td>' + val(n) + '</td><td>' + p + '</td></tr>';
@@ -58,7 +60,7 @@ export function huInhubMini(site) {
     row('Arribado − Bipeado', arrived !== null && bipeado !== null ? arrived - bipeado : null, arrived !== null && bipeado !== null ? percentage(arrived - bipeado) : '—') +
     row('Descarga x hora necesaria (hasta ' + target + ')', Number.isFinite(hourly) ? hourly : null, Number.isFinite(hourly) ? percentage(hourly) : '—') +
     row('Proyectado − Bipeado', fc && bipeado !== null ? fc - bipeado : null, fc && bipeado !== null ? percentage(fc - bipeado) : '—') +
-    row('Velocidad real (pza/h)', velocity, '—') + '</table><small>Arribado: ' + (r ? 'Reporte de registros' : a ? 'Arribos' : 'sin fuente') + ' · Bipeado: TMS Inbound Date Included · velocidad: TMS (piezas de la hora actual / minutos desde HH:00). Los datos no disponibles se muestran como —.</small></div>';
+    row('Velocidad real (pza/h)', velocity, gapText) + '</table><small>Arribado: ' + (r ? 'Reporte de registros' : a ? 'Arribos' : 'sin fuente') + ' · Bipeado: TMS Inbound Date Included · velocidad: TMS (piezas de la hora actual / minutos desde HH:00). Última columna de velocidad real: diferencia en pza/h (real − necesaria). Los datos no disponibles se muestran como —.</small></div>';
 }
 
 function bindSpeedTargets() {
