@@ -639,3 +639,16 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
   .mon-kpi-val{font-size:22px}
   .mon-bigrow{grid-template-columns:1fr}
 }
+
+/* HU: legibilidad de captura WhatsApp, solo resumen y tablas CPT */
+.hu-dashboard .hu-summary td{font-size:14px!important;font-weight:800;line-height:1.12!important;padding:3px 7px!important;color:#f5f8ff}
+.hu-dashboard .hu-summary-update td{font-size:13px!important;color:#d5e4f7}
+.hu-dashboard .hu-cpt-full .hu-table td{font-size:14px!important;font-weight:750;line-height:1.12!important;padding:3px 4px!important;font-variant-numeric:tabular-nums}
+.hu-dashboard .hu-cpt-full .hu-table th{font-size:12px!important;font-weight:800;color:#e0edff;line-height:1.12!important;padding:4px 3px!important}
+.hu-dashboard .hu-cpt-full .hu-table .pill,.hu-dashboard .hu-cpt-full .hu-table .badge{font-size:13px!important;font-weight:800;padding:1px 5px!important}
+.hu-dashboard .hu-cpt-full .hu-table .user-link{font-size:14px!important;min-height:22px!important;padding:2px 7px!important}
+.hu-dashboard .hu-cpt-full .hu-table tr.total td{font-weight:900;color:#a8d5ff}
+.hu-dashboard .hu-air-compact h3{font-size:15px!important;font-weight:800}
+.hu-dashboard .hu-air-compact .hu-table td,.hu-dashboard .hu-left>.hu-air-panel .hu-table td{font-size:14px!important;font-weight:800;line-height:1.12!important;padding:3px 4px!important}
+.hu-dashboard .hu-air-compact .hu-table th,.hu-dashboard .hu-left>.hu-air-panel .hu-table th{font-size:12px!important;font-weight:800;line-height:1.12!important;padding:4px 3px!important}
+.hu-dashboard .hu-air-compact .pill,.hu-dashboard .hu-air-compact .badge{font-size:13px!important}
