@@ -679,3 +679,10 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 #mixView .scroll table th:nth-child(3){width:20%}
 #mixView .scroll table td:nth-child(5){color:#12684d}
 @media(max-width:800px){#mixView .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Mix: tabla compacta para captura */
+#mixView .mix-hourly{width:fit-content;max-width:100%;margin:10px auto;overflow-x:auto}
+#mixView .mix-hourly table{width:auto!important;min-width:0!important;table-layout:auto!important}
+#mixView .mix-hourly table th:nth-child(3){width:auto}
+#mixView .mix-hourly table tr td,#mixView .mix-hourly table tr th{font-size:20px!important;font-weight:800!important;padding:5px 13px!important;line-height:1.12!important;white-space:nowrap;text-align:center}
+#mixView .mix-hourly table tr th{font-size:17px!important;background:#dce8f6}
