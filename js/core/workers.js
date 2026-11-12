@@ -23,7 +23,7 @@ export function onceWorker(url, payload, onp) {
 
 /*--------- WORKERS ONE-SHOT (TMS, ARRIBOS, REGISTROS, LABELLESS) ---------*/
 
-const TMS_URL = './workers/tms.worker.js?v=20261029-dot-1';
+const TMS_URL = './workers/tms.worker.js?v=20261111-tms-1';
 const REG_URL = './workers/registros.worker.js?v=20261102-nonempty-packages-1';
 
 export const runT = (site, onp) => state.sites[site].files.tms
