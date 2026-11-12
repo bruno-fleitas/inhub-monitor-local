@@ -45,7 +45,7 @@ export function mix() {
       const n = { tot: Number(x.tot) || 0, vol: Number(x.vol) || 0, big: Number(x.big) || 0, sb: Number(x.sb) || 0 };
       for (const key of Object.keys(total)) { total[key] += n[key]; cumulative[key] += n[key]; }
       const pureHour = Math.max(0, n.vol - n.big - n.sb);
-      rows += `<tr><td>${String(hr).padStart(2, '0')}:00</td><td>${nf.format(n.tot)}</td><td>${nf.format(pureHour)}</td><td>${pf.format(pct(pureHour, n.tot))}%</td><td>${pf.format(pct(Math.max(0, cumulative.vol - cumulative.big - cumulative.sb), cumulative.tot))}%</td><td>${nf.format(n.big)}</td><td>${nf.format(n.sb)}</td></tr>`;
+      rows += `<tr><td>${String(hr).padStart(2, '0')}:00</td><td>${nf.format(pureHour)}</td><td>${nf.format(n.tot)}</td><td>${pf.format(pct(pureHour, n.tot))}%</td><td>${pf.format(pct(Math.max(0, cumulative.vol - cumulative.big - cumulative.sb), cumulative.tot))}%</td><td>${nf.format(n.big)}</td><td>${nf.format(n.sb)}</td></tr>`;
     }
     const pure = Math.max(0, total.vol - total.big - total.sb);
     const packages = Math.max(0, total.tot - total.vol);
@@ -62,7 +62,7 @@ export function mix() {
         <div class="kpi"><span>SuperBigger</span><b>${nf.format(total.sb)}</b><small>${pf.format(pct(total.sb, total.tot))}% del total</small></div>
       </div>
       ${pieCard('Mix de paquetes · desde ' + String(start).padStart(2, '0') + ':00', [['Paquetería', packages], ['Voluminoso', pure], ['Bigger', total.big], ['SuperBigger', total.sb]])}
-      <div class="scroll"><table><tr><th>Hora</th><th>Total</th><th>Vol. sin B/SB</th><th>% hora</th><th>% acum.</th><th>Bigger</th><th>SB</th></tr>${rows}</table></div>
+      <div class="scroll mix-hourly"><table><tr><th>Hora</th><th>Vol.</th><th>Total</th><th>% hora</th><th>% acum.</th><th>Bigger</th><th>SuperBigger</th></tr>${rows}</table></div>
       <p class="muted">Los porcentajes usan siempre como denominador el total de paquetes del período. Las cuatro categorías del gráfico son excluyentes. La categoría «Voluminoso con B/SB» es un subtotal informativo y no se suma nuevamente al Mix.</p>
     </article>`;
   }
