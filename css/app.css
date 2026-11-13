@@ -692,3 +692,5 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 #view-mix #mixView .scroll table{width:max-content!important;min-width:0!important;max-width:none!important;table-layout:auto!important;margin:0 auto!important}
 #view-mix #mixView .scroll table th,#view-mix #mixView .scroll table td{width:auto!important;min-width:0!important;padding:4px 12px!important;font-size:20px!important;line-height:1.12!important;white-space:nowrap!important}
 #view-mix #mixView .scroll table th{font-size:17px!important}
+
+#mixView .mix-hourly table tr.mix-total td{background:#dce8f6!important;border-top:2px solid #7294bb;font-weight:900!important;color:#12365a}
