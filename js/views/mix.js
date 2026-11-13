@@ -62,7 +62,7 @@ export function mix() {
         <div class="kpi"><span>SuperBigger</span><b>${nf.format(total.sb)}</b><small>${pf.format(pct(total.sb, total.tot))}% del total</small></div>
       </div>
       ${pieCard('Mix de paquetes · desde ' + String(start).padStart(2, '0') + ':00', [['Paquetería', packages], ['Voluminoso', pure], ['Bigger', total.big], ['SuperBigger', total.sb]])}
-      <div class="scroll mix-hourly"><table><tr><th>Hora</th><th>Vol.</th><th>Total</th><th>% hora</th><th>% acum.</th><th>Bigger</th><th>SuperBigger</th></tr>${rows}</table></div>
+      <div class="scroll mix-hourly"><table><tr><th>Hora</th><th>Vol.</th><th>Total</th><th>% hora</th><th>% acum.</th><th>Bigger</th><th>SuperBigger</th></tr>${rows}<tr class="mix-total"><td>Total</td><td>${nf.format(pure)}</td><td>${nf.format(total.tot)}</td><td>${pf.format(pct(pure, total.tot))}%</td><td>${pf.format(pct(pure, total.tot))}%</td><td>${nf.format(total.big)}</td><td>${nf.format(total.sb)}</td></tr></table></div>
       <p class="muted">Los porcentajes usan siempre como denominador el total de paquetes del período. Las cuatro categorías del gráfico son excluyentes. La categoría «Voluminoso con B/SB» es un subtotal informativo y no se suma nuevamente al Mix.</p>
     </article>`;
   }
