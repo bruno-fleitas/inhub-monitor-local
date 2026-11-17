@@ -65,31 +65,45 @@ function operationalHourMatrix(site) {
 
 /*--------- MATRIZ VEHICULOS Y SPR ---------*/
 
+
+function sprHourRange(site) {
+  const cfg = state.config.sprHourRanges?.[site] || {};
+  const from = Number.isInteger(cfg.from) && cfg.from >= 0 && cfg.from < 24 ? cfg.from : 9;
+  const to = Number.isInteger(cfg.to) && cfg.to >= 0 && cfg.to < 24 ? cfg.to : 22;
+  return { from, to, hours: Array.from({ length: (to - from + 24) % 24 + 1 }, (_, i) => (from + i) % 24) };
+}
+
 function vehicleSprMatrix(site) {
-  const d = state.sites[site], a = d.arrivals, r = d.registros;
-  const hours = curveHourRange(site).hours;
-  const ed = r?.byHour || null, vehicles = a?.h || r?.vehiclesByHour || null;
-  if (!ed && !vehicles) return '';
-  const vehValues = hours.map(h => vehicles ? Number(vehicles[h]?.veh || 0) : null);
-  const edValues = hours.map(h => ed ? Number(ed[h] || 0) : null);
-  const sprValues = hours.map((h, i) => vehValues[i] > 0 && edValues[i] !== null ? edValues[i] / vehValues[i] : null);
-  const vTotal = vehValues.reduce((n, x) => n + (x || 0), 0), eTotal = edValues.reduce((n, x) => n + (x || 0), 0);
-  const fmt = x => x === null ? '—' : nf.format(Math.round(x));
-  const spr = x => x === null ? '—' : x.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  const rows = [['Vehículos recibidos', vehValues, fmt, vehicles ? fmt(vTotal) : '—'], ['Paquetes ED', edValues, fmt, ed ? fmt(eTotal) : '—'], ['SPR · pza/veh.', sprValues, spr, vehicles && ed && vTotal ? spr(eTotal / vTotal) : '—']];
-  const sourceHours = r?.vehiclesByHour || a?.h || null;
-  const typeRows = [['Chasis', 'chasis'], ['Camioneta (incluye MELI)', 'camioneta'], ['Semi', 'semi']];
-  const typeMatrix = sourceHours ? '<div class="hour-matrix-scroll" style="margin-top:12px"><table><thead><tr><th>Vehículo / indicador</th>' + hours.map(h => '<th>' + String(h).padStart(2, '0') + ':00</th>').join('') + '<th>TOTAL</th></tr></thead><tbody>' + typeRows.map(([label, key]) => {
-    const hourly = hours.map(h => Number(sourceHours[h]?.[key] || 0)); const sum = hourly.reduce((n, x) => n + x, 0);
-    let running = 0; const cumulative = hourly.map(x => (running += x));
-    const share = cumulative.map(x => sum ? x / sum * 100 : null);
-    const pieces = r?.packagesByTypeHour?.[key];
-    const hourlySpr = hours.map((h, i) => pieces && hourly[i] > 0 ? Number(pieces[h] || 0) / hourly[i] : null);
-    const totalPieces = pieces ? hours.reduce((n, h) => n + Number(pieces[h] || 0), 0) : null;
-    const cells = (label, vals, format, total) => '<tr><th>' + label + '</th>' + vals.map(x => '<td>' + format(x) + '</td>').join('') + '<td class="matrix-total">' + total + '</td></tr>';
-    return cells(label + ' · arribados', hourly, fmt, fmt(sum)) + cells(label + ' · acumulado', cumulative, fmt, fmt(sum)) + cells(label + ' · % acumulado', share, x => x === null ? '—' : pf.format(x) + '%', sum ? '100,0%' : '—') + cells(label + ' · SPR', hourlySpr, spr, totalPieces !== null && sum ? spr(totalPieces / sum) : '—');
-  }).join('') + '</tbody></table></div><p class="muted">Camioneta MELI se incluye en Camioneta. % acumulado = vehículos acumulados del tipo ÷ total de ese tipo en el rango. SPR por tipo = piezas ED asignadas a ese tipo ÷ vehículos del mismo tipo; si no hay desglose de piezas, se muestra —.</p>' : '';
-  return '<section class="hour-matrix vehicle-spr-matrix"><h3>Vehículos y SPR por hora</h3><p class="muted">Vehículos: Arribos o registros únicos de Easy Docking (si no hay Arribos). Paquetes: reporte ED. SPR = paquetes ED / vehículos de la misma hora. Sin vehículos disponibles se muestra —; no se usan estimaciones.</p><div class="hour-matrix-scroll"><table><thead><tr><th>Indicador</th>' + hours.map(h => '<th>' + String(h).padStart(2, '0') + ':00</th>').join('') + '<th>TOTAL</th></tr></thead><tbody>' + rows.map(([label, values, format, total]) => '<tr><th>' + label + '</th>' + values.map(x => '<td>' + format(x) + '</td>').join('') + '<td class="matrix-total">' + total + '</td></tr>').join('') + '</tbody></table></div>' + typeMatrix + '</section>';
+  const d = state.sites[site], r = d.registros, a = d.arrivals;
+  if (!r && !a) return '';
+  const {from, to, hours} = sprHourRange(site);
+  // Use the same ED source for numerator and denominator, including general totals.
+  const counts = r?.vehiclesByHour, pieces = r?.packagesByTypeHour, allPieces = r?.byHour;
+  const sum = (series, read) => hours.reduce((n,h) => n + read(series[h], h), 0);
+  const value = (p,v) => Number.isFinite(p) && Number.isFinite(v) && v > 0 ? nf.format(Math.round(p/v)) : '—';
+  const opts = selected => Array.from({length:24},(_,h) => '<option value="'+h+'"'+(h===selected?' selected':'')+'>'+String(h).padStart(2,'0')+':00</option>').join('');
+  const row = (label, pkg, veh, general=false) => {
+    const available = Array.isArray(pkg) && Array.isArray(counts);
+    const getV = x => Number(x?.[veh] || 0);
+    const totalP = available ? sum(pkg,x=>Number(x||0)) : null;
+    const totalV = available ? sum(counts,getV) : null;
+    return '<tr'+(general?' class="spr-general"':'')+'><th>'+label+'</th>'+hours.map(h=>'<td>'+(available?value(Number(pkg[h]||0),getV(counts[h])):'—')+'</td>').join('')+'<td class="matrix-total">'+(available?value(totalP,totalV):'—')+'</td></tr>';
+  };
+  const rows = [['Chasis','chasis'],['Camioneta','camioneta'],['Semi','semi']].map(([label,key])=>row(label,pieces?.[key],key)).join('')+row('Total general',allPieces,'veh',true);
+  return '<section class="hour-matrix vehicle-spr-matrix"><h3>SPR por hora y tipo de vehículo · pza/veh.</h3>'+
+    '<div class="toolbar curve-range" data-spr-range="'+site+'"><label>Desde <select data-spr-from>'+opts(from)+'</select></label><label>Hasta <select data-spr-to>'+opts(to)+'</select></label><button class="primary" data-apply-spr-range="'+site+'">Aplicar rango</button></div>'+
+    '<div class="hour-matrix-scroll spr-compact"><table><thead><tr><th>Vehículo</th>'+hours.map(h=>'<th>'+String(h).padStart(2,'0')+':00</th>').join('')+'<th>TOTAL</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<p class="muted">Fuente: Registros Easy Docking, paquetes y vehículos únicos de la misma hora. Camioneta incluye MELI. TOTAL = paquetes del rango / vehículos del rango. Total general incluye otros tipos si existen. Sin datos ED o sin vehículos: —. Horas inclusive hasta HH:59.</p></section>';
+}
+
+function bindSprRanges() {
+  document.querySelectorAll('[data-apply-spr-range]').forEach(btn=>btn.onclick=()=>{
+    const site=btn.dataset.applySprRange, el=document.querySelector('[data-spr-range="'+site+'"]');
+    if(!el)return;
+    state.config.sprHourRanges ??= {};
+    state.config.sprHourRanges[site]={from:Number(el.querySelector('[data-spr-from]').value),to:Number(el.querySelector('[data-spr-to]').value)};
+    curves();
+  });
 }
 
 /*--------- DISTRIBUCION DE VEHICULOS ---------*/
@@ -181,4 +195,5 @@ export function curves() {
   }
   $('curvesView').innerHTML = h || '<article class="card empty">Sin datos.</article>';
   bindCurveRanges();
+  bindSprRanges();
 }
