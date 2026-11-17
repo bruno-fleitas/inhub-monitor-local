@@ -3,12 +3,12 @@ import { state } from './state.js';
 export const masters = { soldati: [], echeverria: [] };
 
 export async function initMasters() {
+  const masterVersion = '2026-11-17-v3';
   const [s, e] = await Promise.all([
-    fetch('./js/config/masterS.json').then(r => r.json()),
-    fetch('./js/config/masterE.json').then(r => r.json())
+    fetch('./js/config/masterS.json?v=' + masterVersion, { cache: 'no-store' }).then(r => r.json()),
+    fetch('./js/config/masterE.json?v=' + masterVersion, { cache: 'no-store' }).then(r => r.json())
   ]);
   state.defaults = { masterS: s, masterE: e };
-  const masterVersion = '2026-10-27-v2';
   if (localStorage.getItem('inhubMasterVersion') !== masterVersion) {
     localStorage.removeItem('inhubMasterS');
     localStorage.removeItem('inhubMasterE');
