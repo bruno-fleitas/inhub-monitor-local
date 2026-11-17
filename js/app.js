@@ -12,7 +12,7 @@ import { getSession, login, logout, applyRoleFilter } from './core/auth.js';
 import { summary } from './views/summary.js';
 import { operation } from './views/operation.js?v=20261112-hu-speed-gap-1';
 import { huControl, setRenderAll as setHuRenderAll, setRunT } from './views/huControl.js?v=20261112-hu-speed-gap-1';
-import { curves } from './views/curves.js';
+import { curves } from './views/curves.js?v=20261117-spr-compact-1';
 import { mix } from './views/mix.js?v=20261113-mix-totals-1';
 import { subca } from './views/subca.js';
 import { jornales, runJ, setRenderAll as setJorRenderAll } from './views/jornales.js';
