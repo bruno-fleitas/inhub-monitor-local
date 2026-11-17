@@ -699,3 +699,12 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .hu-dashboard .hu-summary .hu-summary-update td{font-size:15px!important;text-align:center!important;padding:4px 6px!important}
 .hu-dashboard .hu-summary-update .hu-update-time,.hu-dashboard .hu-inhub-mini .hu-inhub-time b{color:#ffdf45!important;font-size:22px!important;font-weight:900!important;font-variant-numeric:tabular-nums;letter-spacing:.5px;line-height:1.15}
 .hu-dashboard .hu-inhub-mini .hu-inhub-time{text-align:center!important;font-size:15px!important;font-weight:800;line-height:1.25;padding:4px 0}
+
+/* SPR horario: matriz compacta y legible, exclusiva de Curvas */
+.curves-site .vehicle-spr-matrix .spr-compact{width:max-content;max-width:100%;margin:8px auto;overflow-x:auto}
+.curves-site .vehicle-spr-matrix .spr-compact table{width:max-content;min-width:0;font-variant-numeric:tabular-nums}
+.curves-site .vehicle-spr-matrix .spr-compact th,.curves-site .vehicle-spr-matrix .spr-compact td{font-size:17px!important;font-weight:800;padding:7px 10px!important;text-align:center;color:#f1f6ff;white-space:nowrap}
+.curves-site .vehicle-spr-matrix .spr-compact thead th{font-size:14px!important}
+.curves-site .vehicle-spr-matrix .spr-compact th:first-child{text-align:left;min-width:112px}
+.curves-site .vehicle-spr-matrix .spr-compact .matrix-total{background:#304e70!important;color:#fff}
+.curves-site .vehicle-spr-matrix .spr-compact .spr-general td,.curves-site .vehicle-spr-matrix .spr-compact .spr-general th{background:#253d58!important;color:#85f0d4;font-weight:900;border-top:2px solid #6685a9}
