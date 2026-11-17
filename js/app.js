@@ -19,7 +19,7 @@ import { jornales, runJ, setRenderAll as setJorRenderAll } from './views/jornale
 import { mail, bindMailCopy } from './views/mail.js';
 import { reportPreview, doPpt, exportCsv } from './views/report.js';
 import { dockDashboard } from './views/docks.js';
-import { planVsReal } from './views/planVsReal.js';
+import { planVsReal } from './views/planVsReal.js?v=20261117-plan-paste-1';
 import { huGoalView } from './views/huGoal.js';
 import { masterUI } from './views/config.js';
 import { monitorEvento } from './views/monitor.js';
