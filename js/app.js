@@ -18,7 +18,7 @@ import { subca } from './views/subca.js';
 import { jornales, runJ, setRenderAll as setJorRenderAll } from './views/jornales.js';
 import { mail, bindMailCopy } from './views/mail.js';
 import { reportPreview, doPpt, exportCsv } from './views/report.js';
-import { dockDashboard } from './views/docks.js';
+import { dockDashboard } from './views/docks.js?v=20261117-docks-start-1';
 import { planVsReal } from './views/planVsReal.js?v=20261117-plan-paste-1';
 import { huGoalView } from './views/huGoal.js';
 import { masterUI } from './views/config.js';
