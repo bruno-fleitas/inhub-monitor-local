@@ -694,3 +694,8 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 #view-mix #mixView .scroll table th{font-size:17px!important}
 
 #mixView .mix-hourly table tr.mix-total td{background:#dce8f6!important;border-top:2px solid #7294bb;font-weight:900!important;color:#12365a}
+
+/* HU: hora de actualización destacada en ambos resúmenes */
+.hu-dashboard .hu-summary .hu-summary-update td{font-size:15px!important;text-align:center!important;padding:4px 6px!important}
+.hu-dashboard .hu-summary-update .hu-update-time,.hu-dashboard .hu-inhub-mini .hu-inhub-time b{color:#ffdf45!important;font-size:22px!important;font-weight:900!important;font-variant-numeric:tabular-nums;letter-spacing:.5px;line-height:1.15}
+.hu-dashboard .hu-inhub-mini .hu-inhub-time{text-align:center!important;font-size:15px!important;font-weight:800;line-height:1.25;padding:4px 0}
