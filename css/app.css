@@ -708,3 +708,29 @@ th,td,th:first-child,td:first-child{text-align:center;padding:5px 6px}
 .curves-site .vehicle-spr-matrix .spr-compact th:first-child{text-align:left;min-width:112px}
 .curves-site .vehicle-spr-matrix .spr-compact .matrix-total{background:#304e70!important;color:#fff}
 .curves-site .vehicle-spr-matrix .spr-compact .spr-general td,.curves-site .vehicle-spr-matrix .spr-compact .spr-general th{background:#253d58!important;color:#85f0d4;font-weight:900;border-top:2px solid #6685a9}
+
+/* Productividad por dársena: tarjetas comparativas */
+.dock-dashboard .dock-toolbar{align-items:end;gap:10px 14px}
+.dock-dashboard .dock-toolbar select{display:block;margin-top:5px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#173653;max-width:190px}
+.dock-dashboard .dock-period-note{font-size:12px;color:#47617b;background:#eef5fc;padding:10px 12px;border-radius:8px;margin:0 0 12px}
+.dock-dashboard .dock-tiles{grid-template-columns:repeat(auto-fill,minmax(218px,1fr));gap:12px}
+.dock-detail{padding:12px 10px;border-top-color:#146aab;cursor:default}
+.dock-detail .dock-num{font-size:15px;letter-spacing:.4px}
+.dock-detail .dock-state{font-size:10px;color:#146a45;margin:4px 0 8px}
+.dock-detail .dock-idle{color:#64748b}
+.dock-detail .dock-current-label{font-size:11px;color:#536b83}
+.dock-detail strong{font-size:28px;margin:2px 0;color:#123958;line-height:1.15}
+.dock-detail .dock-speed{font-size:13px;color:#126b47}
+.dock-meta{display:grid;grid-template-columns:1fr auto;text-align:left;gap:5px;font-size:11px;color:#536b83;margin:10px 0;padding:8px 0;border-top:1px solid #e2e9f1;border-bottom:1px solid #e2e9f1}
+.dock-meta b{color:#183c5d;text-align:right}
+.dock-dashboard table.dock-mix{width:100%;font-size:11px;border-collapse:collapse;margin:0 0 8px}
+.dock-dashboard .dock-mix th,.dock-dashboard .dock-mix td{padding:4px 3px;border-bottom:1px solid #e5edf5;text-align:right;color:#173653;background:transparent}
+.dock-dashboard .dock-mix th{background:#edf4fb;font-size:10px}
+.dock-dashboard .dock-mix th:first-child,.dock-dashboard .dock-mix td:first-child{text-align:left}
+.dock-dashboard .dock-mix tr:nth-child(2) td:first-child{color:#94620b}
+.dock-dashboard .dock-mix tr:nth-child(3) td:first-child{color:#a92e38}
+.dock-user-trigger{position:relative;color:#1764ad;font-weight:700;cursor:help;padding:5px 0}
+.dock-detail .dock-tooltip{top:auto;bottom:100%;max-height:250px;overflow:auto}
+.dock-detail:focus-within .dock-tooltip,.dock-user-trigger:hover .dock-tooltip{display:block}
+.dock-detail .dock-export{display:block;width:100%;margin-top:6px;background:#edf4fb;color:#17558b;border:1px solid #c6d9ec;border-radius:7px;padding:7px 4px;font-weight:700}
+.dock-detail .dock-export:hover{background:#d9eaf9}
