@@ -1,6 +1,7 @@
 import { $ } from '../core/dom.js';
 import { nf, pf, pct, esc, huPercent2 } from '../core/formatters.js';
 import { state, names, dotExclusions } from '../core/state.js';
+import { onceWorker } from '../core/workers.js?v=20261111-tms-1';
 import { huConfig } from '../core/config.js';
 import { hoursToTarget, fmtDuration } from '../core/time.js';
 import {
@@ -35,7 +36,7 @@ function bindHuUserClicks() {
 function huAirPanel(site, t, detailMode = false) {
   const x = huSeparateAir(t).meli, tot = x.hu.totals, progress = tot.etiquetado ? pct(tot.abierto + tot.cerrado, tot.etiquetado) : 0;
   const airUsers = [...new Map(huActiveUsers(site, x).map(u => [u.user, { user: u.user, last: u.last }])).values()];
-  if (!detailMode) return '<section class="hu-air-compact"><h3>Armado de HU · MELI Air</h3><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr><tr class="hu-air-row"><td>00:00</td><td>' + nf.format(tot.etiquetado) + '</td><td>' + nf.format(tot.abierto) + '</td><td>' + nf.format(tot.cerrado) + '</td><td>' + nf.format(tot.pendiente) + '</td><td><span class="hu-pill ' + huTone(progress, huConfig(site).objective) + '">' + huPercent2(progress) + '%</span></td><td>' + huUserButton(airUsers, 'MELI Air · conectados') + '</td></tr></table></section>';
+  if (!detailMode) return '<section class="hu-air-compact"><h3>Armado de HU · MELI Air</h3><table class="hu-table"><tr><th>CPT</th><th>Etiquetado</th><th>HU-Abierto</th><th>HU-Cerrado</th><th>Pend. HU</th><th>% Avance</th><th>Users activos</th></tr><tr class="hu-air-row"><td>00:00</td><td>' + nf.format(tot.etiquetado) + '</td><td>' + nf.format(tot.abierto) + '</td><td>' + nf.format(tot.cerrado) + '</td><td>' + nf.format(tot.pendiente) + '</td><td><span class="hu-pill ' + huTone(progress, huConfig(site).objective) + '">' + huPercent2(progress) + '%</span></td><td>' + huUserButton(airUsers, 'MELI Air · conectados') + '</td></tr></table><div class="toolbar">' + cptExportButtons(site,'00',true) + '</div></section>';
   return '<section class="hu-air-panel"><h3>MELI AIR · Detalle por SubCA</h3><div class="hu-scroll"><table class="hu-table"><tr><th>SubCA</th><th>Etiquetado</th><th>Abierto</th><th>Cerrado</th><th>Pendiente</th><th>Avance</th><th>Conectados</th></tr>' + x.hu.subca.map(g => '<tr><td>' + esc(g.subca) + '</td><td>' + nf.format(g.etiquetado) + '</td><td>' + nf.format(g.abierto) + '</td><td>' + nf.format(g.cerrado) + '</td><td>' + nf.format(g.pendiente) + '</td><td>' + huPercent2(g.etiquetado ? pct(g.abierto + g.cerrado, g.etiquetado) : 0) + '%</td><td>' + huUserButton(airUsers.filter(u => huActiveUsers(site, x).some(a => a.user === u.user && String(a.subca).toUpperCase() === String(g.subca).toUpperCase())), g.subca + ' · conectados') + '</td></tr>').join('') + '</table></div></section>';
 }
 
@@ -47,10 +48,36 @@ function huProductivity(t) {
   return '<table class="hu-table compact"><tr><th>Usuario HU</th><th>Piezas / eventos</th><th>Última actividad</th></tr>' + rows.map(x => '<tr><td>' + esc(x.user) + '</td><td>' + nf.format(x.count) + '</td><td>' + (x.last ? new Date(x.last).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '-') + '</td></tr>').join('') + '</table>';
 }
 
+
+function cptExportButtons(site,cpt,air=false){
+  const attrs=' data-cpt-site="'+esc(site)+'" data-cpt-value="'+esc(cpt)+'" data-cpt-air="'+(air?'1':'0')+'"';
+  return '<button type="button" class="smallbtn"'+attrs+' data-cpt-export="all">Exportar todo</button> <button type="button" class="smallbtn"'+attrs+' data-cpt-export="pending">Exportar pend. HU</button>';
+}
+function bindCptExports(){
+  document.querySelectorAll('[data-cpt-export]').forEach(btn=>btn.onclick=async e=>{
+    e.preventDefault();e.stopPropagation();
+    const site=btn.dataset.cptSite,cpt=btn.dataset.cptValue,air=btn.dataset.cptAir==='1',pendingOnly=btn.dataset.cptExport==='pending';
+    const t=state.sites[site].tms,file=state.sites[site].files.tms;
+    if(!t||!file){alert('Cargá y procesá el TMS de este site.');return}
+    const split=huSeparateAir(t),groups=huCptTracking(site,air?split.meli:split.normal);
+    const group=air?{subcas:split.meli.hu.subca,etiquetado:split.meli.hu.totals.etiquetado,pendiente:split.meli.hu.totals.pendiente}:groups.find(g=>String(g.cpt)===cpt);
+    if(!group){alert('No se encontró el CPT.');return}
+    const date=state.config.analysisDate,start=t.huStartHour??7,cutoff=t.huCutoff||null;
+    const label=btn.textContent;btn.disabled=true;btn.textContent='Exportando…';
+    try{
+      const result=await onceWorker('./workers/cpt-export.worker.js?v=20261117-cpt-export-1',{type:'EXPORT_CPT',file,config:{site,cpt,date,start,cutoff,subcas:group.subcas.map(x=>x.subca),expectedAll:group.etiquetado,expectedPending:group.pendiente,pendingOnly}},p=>{btn.textContent='Exportando '+p+'%'});
+      if(state.sites[site].tms!==t||state.sites[site].files.tms!==file||state.config.analysisDate!==date)throw Error('Cambió el análisis. Volvé a exportar.');
+      const url=URL.createObjectURL(result.blob),a=document.createElement('a');
+      a.href=url;a.download=site+'_CPT_'+(air?'MELI_AIR_':'')+cpt.replace(/[^a-z0-9_-]/gi,'_')+'_'+(pendingOnly?'Pendiente_HU':'Completo')+'_'+(date||'sin_fecha')+'.csv';
+      a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(err){alert('No se pudo exportar: '+err.message)}finally{btn.disabled=false;btn.textContent=label}
+  });
+}
+
 function huTrackingTable(site, t) {
   const groups = huCptTracking(site, t);
   if (!groups.length) return '<div class="hu-empty">Sin información por CPT/SubCA.</div>';
-  return '<div class="cpt-track">' + groups.map(g => '<details class="cpt-group" open><summary><span class="cpt-name">CPT ' + esc(g.cpt) + '</span><span>' + g.subcas.length + ' SubCA</span><span>' + nf.format(g.etiquetado) + ' piezas</span><span>' + pf.format(g.avance) + '% avance</span><span>' + huUserButton(g.userList, 'CPT ' + g.cpt + ' · usuarios conectados') + '</span><span>' + nf.format(g.finalizado) + ' fin. · ' + nf.format(g.enDespacho) + ' desp. · ' + nf.format(g.despachado) + ' sal.</span><span class="hu-pill ' + huTone(g.avance, 99.5) + '">' + nf.format(g.pendiente) + ' pend.</span></summary><div class="hu-scroll cpt-sub-scroll"><table class="hu-table compact"><tr><th>SubCA</th><th>Ola</th><th>Indicador</th><th>Etiquetado</th><th>HU Abierto</th><th>HU Cerrado</th><th>Pendiente</th><th>% Avance</th><th>Conectados</th><th>HU Finalizado</th><th>En despacho</th><th>Despachado</th></tr>' + g.subcas.map(r => '<tr><td>' + esc(r.subca) + '</td><td>' + esc(r.ola || '-') + '</td><td>' + esc(r.indicador || '-') + '</td><td>' + nf.format(r.etiquetado) + '</td><td>' + nf.format(r.abierto) + '</td><td>' + nf.format(r.cerrado) + '</td><td class="hu-pend">' + nf.format(r.pendiente) + '</td><td><span class="hu-pill ' + huTone(r.avance, 99.5) + '">' + pf.format(r.avance) + '%</span></td><td>' + huUserButton(r.userList, r.subca + ' · usuarios conectados') + '</td><td>' + nf.format(r.finalizado) + '</td><td>' + nf.format(r.enDespacho) + '</td><td>' + nf.format(r.despachado) + '</td></tr>').join('') + '</table></div></details>').join('') + '</div>';
+  return '<div class="cpt-track">' + groups.map(g => '<details class="cpt-group" open><summary><span class="cpt-name">CPT ' + esc(g.cpt) + '</span><span>' + g.subcas.length + ' SubCA</span><span>' + nf.format(g.etiquetado) + ' piezas</span><span>' + pf.format(g.avance) + '% avance</span><span>' + huUserButton(g.userList, 'CPT ' + g.cpt + ' · usuarios conectados') + '</span><span>' + nf.format(g.finalizado) + ' fin. · ' + nf.format(g.enDespacho) + ' desp. · ' + nf.format(g.despachado) + ' sal.</span><span class="hu-pill ' + huTone(g.avance, 99.5) + '">' + nf.format(g.pendiente) + ' pend.</span></summary><div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;padding:8px">' + cptExportButtons(site,g.cpt) + '</div><div class="hu-scroll cpt-sub-scroll"><table class="hu-table compact"><tr><th>SubCA</th><th>Ola</th><th>Indicador</th><th>Etiquetado</th><th>HU Abierto</th><th>HU Cerrado</th><th>Pendiente</th><th>% Avance</th><th>Conectados</th><th>HU Finalizado</th><th>En despacho</th><th>Despachado</th></tr>' + g.subcas.map(r => '<tr><td>' + esc(r.subca) + '</td><td>' + esc(r.ola || '-') + '</td><td>' + esc(r.indicador || '-') + '</td><td>' + nf.format(r.etiquetado) + '</td><td>' + nf.format(r.abierto) + '</td><td>' + nf.format(r.cerrado) + '</td><td class="hu-pend">' + nf.format(r.pendiente) + '</td><td><span class="hu-pill ' + huTone(r.avance, 99.5) + '">' + pf.format(r.avance) + '%</span></td><td>' + huUserButton(r.userList, r.subca + ' · usuarios conectados') + '</td><td>' + nf.format(r.finalizado) + '</td><td>' + nf.format(r.enDespacho) + '</td><td>' + nf.format(r.despachado) + '</td></tr>').join('') + '</table></div></details>').join('') + '</div>';
 }
 
 /*--------- MONITOR DOT ---------*/
@@ -144,6 +171,7 @@ export function huControl() {
     try { state.sites[site].tms = await runT(site); renderAll(); }
     catch (e) { alert('Error al aplicar corte: ' + e.message); b.disabled = false; b.textContent = clear ? 'Limpiar corte' : 'Aplicar corte'; }
   });
+  bindCptExports();
   bindHuUserClicks();
   bindDotControls();
 }
