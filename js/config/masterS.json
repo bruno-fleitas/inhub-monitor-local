@@ -586,5 +586,11 @@
     "ola": "verde",
     "cpt": 11,
     "indicador": "standard"
+  },
+  {
+    "subca": "SBU11",
+    "ola": "verde",
+    "cpt": 10,
+    "indicador": "standard"
   }
 ]
